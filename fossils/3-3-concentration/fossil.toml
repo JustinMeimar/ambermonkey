@@ -5,6 +5,10 @@ default_iterations = 1
 [analyze]
 concentration = "analyses/concentration.py"
 
+[figures.pareto-cdf]
+analysis = "concentration"
+script = "figures/pareto_cdf.py"
+
 [variants]
 # Demand mode: adds a prologue counter bump so entries-flush carries
 # meaningful entered_count values. instrSnapshot("post") triggers a

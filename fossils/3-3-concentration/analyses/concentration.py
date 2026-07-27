@@ -154,12 +154,21 @@ def analyze(obs):
     ic_curve = _cumcov(ic_items)
     bl_curve = _cumcov(bl_items)
 
+    # Ranked exec-count sequences (highest first). Consumed directly by
+    # ranked_cdf() in fossil_figures; cumulative-fraction is computed
+    # at plot time so both figures and prose derive from the same
+    # underlying counters.
+    ic_ranked = sorted((x[1] for x in ic_items), reverse=True)
+    bl_ranked = sorted((x[1] for x in bl_items), reverse=True)
+
     return {
         "n_entries_flushes":        n_flushes,
         "ic_body_pareto":           ic_curve,
         "ic_body_pareto_summary":   _pareto_summary(ic_curve),
         "baseline_fn_pareto":       bl_curve,
         "baseline_fn_pareto_summary": _pareto_summary(bl_curve),
+        "ic_body_ranked_counts":    ic_ranked,
+        "baseline_fn_ranked_counts": bl_ranked,
         # Compact per-cache-kind view of top IC bodies (paper appendix).
         "top_ic_bodies_by_exec": [
             {"ic_body_id": x[0][:12], "cache_kind":
