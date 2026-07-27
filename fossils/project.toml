@@ -1,0 +1,36 @@
+name = "ambermonkey"
+description = "AmberMonkey Section 3 empirical motivation: stock Firefox measurements"
+
+[constants]
+
+# Source and build outputs (branch: justin/v153-empirical-motivation).
+FIREFOX = "/home/justin/spidermonkey/firefox"
+JSSHELL = "$FIREFOX/build-shell-release/dist/bin/js"
+BIN_RELEASE = "$FIREFOX/build-browser-release/dist/bin/firefox"
+
+# Mozconfigs (ambermonkey-owned; do not share with frostmonkey to avoid
+# accidental AOT contamination).
+MC_BROWSER = "MOZCONFIG=/home/justin/spidermonkey/ambermonkey/mozconfigs/browser-release.mozconfig"
+MC_SHELL = "MOZCONFIG=/home/justin/spidermonkey/ambermonkey/mozconfigs/shell-release.mozconfig"
+
+# Sandbox: browser only; disable content-process sandbox so
+# JitInstrReporter can write JSONL from every process.
+SANDBOX = "MOZ_DISABLE_CONTENT_SANDBOX=1"
+
+# Instrumentation init: stage a fresh per-run dir into $D and export
+# the JS_INSTR_* env vars in one shell fragment. Callers just do
+# `@INSTR_INIT_STRUCTURAL; @JSSHELL ...; @INSTR_TAIL`.
+INSTR_INIT_STRUCTURAL = "D=$(mktemp -d /tmp/amber-instr.XXXXXX) && export JS_INSTR=all JS_INSTR_DIR=$D JS_INSTR_MODE=structural JS_INSTR_RUN_ID=$(basename $D)"
+INSTR_INIT_DEMAND = "D=$(mktemp -d /tmp/amber-instr.XXXXXX) && export JS_INSTR=all JS_INSTR_DIR=$D JS_INSTR_MODE=demand JS_INSTR_RUN_ID=$(basename $D)"
+
+# Ship every process's JSONL to observation stderr, then clean up $D.
+INSTR_TAIL = "cat $D/*.jsonl >&2 && rm -rf $D"
+
+# Disable Ion + baseline JIT and set warmup threshold to zero. Forces
+# execution through the baseline interpreter path -- useful sanity
+# check that instrumentation still fires under a jitless configuration.
+JITLESS = "JIT_OPTION_baselineJit=false JIT_OPTION_ion=false JIT_OPTION_baselineInterpreterWarmUpThreshold=0"
+
+# Benchmark inputs.
+OCTANE_DIR = "$FIREFOX/js/src/octane"
+TESTS_DIR = "/home/justin/spidermonkey/tests"

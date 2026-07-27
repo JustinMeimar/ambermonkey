@@ -1,0 +1,20 @@
+name = "3-2-coupling"
+description = "AmberMonkey Section 3.2: Baseline coupling census over ic-body-emit records"
+default_iterations = 1
+
+[analyze]
+coupling = "analyses/coupling.py"
+
+[variants]
+# Small shell workload with a rich IC surface (polymorphic prop reads
+# + method calls + arithmetic). Structural mode is sufficient -- we
+# only need ic-body-emit's coupling arrays.
+shell-ic-poly = "@INSTR_INIT_STRUCTURAL; @JSSHELL -f @TESTS_DIR/ic-poly.js -e 'instrSnapshot(\"post\");' 1>&2; @INSTR_TAIL"
+
+# Octane covers a broader CacheIR body population. Any single benchmark
+# from Octane exercises baseline + IC on realistic guest code.
+shell-octane-richards = "@INSTR_INIT_STRUCTURAL; cd @OCTANE_DIR && @JSSHELL -f base.js -f richards.js -e 'new Benchmark(\"richards\", false, false, 0, benchmarks[0].runFn).run(); instrSnapshot(\"post\");' 1>&2; @INSTR_TAIL"
+
+# Full Octane run.js covers every included benchmark; largest coupling
+# corpus we can generate quickly.
+shell-octane-full = "@INSTR_INIT_STRUCTURAL; cd @OCTANE_DIR && @JSSHELL -f run.js -e 'instrSnapshot(\"post\");' 1>&2; @INSTR_TAIL"

@@ -1,0 +1,12 @@
+# Per-fossil burial records: generated data, one dir per run. Fossil
+# treats these as append-only under ~/.fossil/projects/<name>, which
+# is a symlink into this tree.
+fossils/*/records/
+
+# Python bytecode caches from analysis scripts.
+__pycache__/
+*.pyc
+
+# Editor / OS junk.
+*.swp
+.DS_Store

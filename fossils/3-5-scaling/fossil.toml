@@ -1,0 +1,36 @@
+name = "3-5-scaling"
+description = "AmberMonkey Section 3.5: simultaneous redundancy and process-scaling ceiling (N = 1, 2, 4, 8 content procs)"
+default_iterations = 1
+allow_failure = true
+
+[analyze]
+scaling = "analyses/scaling.py"
+
+[figures.scaling-curve]
+analysis = "scaling"
+script = "figures/scaling_curve.py"
+
+[variables]
+# Structural mode for artifact-key sets; snapshot-smaps supplies PSS
+# per process to cross-validate the artifact-level ceiling.
+INIT = "D=$(mktemp -d /tmp/amber-3-5.XXXXXX) && export JS_INSTR=all JS_INSTR_DIR=$D JS_INSTR_MODE=structural JS_INSTR_RUN_ID=$(basename $D)"
+TAIL = "cat $D/*.jsonl >&2 && rm -rf $D"
+
+# Fanout is controlled by the browser pref `dom.ipc.processCount`.
+# Frostmonkey did this via a user.js in the profile dir; here we
+# encode it inline as MOZ_ prefs args when possible or with a
+# per-variant profile bootstrap. TODO: confirm the exact incantation.
+N1 = "--setpref dom.ipc.processCount=1"
+N2 = "--setpref dom.ipc.processCount=2"
+N4 = "--setpref dom.ipc.processCount=4"
+N8 = "--setpref dom.ipc.processCount=8"
+
+[variants]
+# TODO(3-5): vary --dom.ipc.processCount over N=1,2,4,8 for AWSY-tp6.
+# Same-origin upper bound as awsy-tp6-N8-same-origin (identical URL
+# repeated).
+awsy-tp6-N1 = "echo 'TODO(3-5): $INIT + awsy-test $N1 + $TAIL' >&2 && exit 1"
+awsy-tp6-N2 = "echo 'TODO(3-5): $INIT + awsy-test $N2 + $TAIL' >&2 && exit 1"
+awsy-tp6-N4 = "echo 'TODO(3-5): $INIT + awsy-test $N4 + $TAIL' >&2 && exit 1"
+awsy-tp6-N8 = "echo 'TODO(3-5): $INIT + awsy-test $N8 + $TAIL' >&2 && exit 1"
+awsy-tp6-N8-same-origin = "echo 'TODO(3-5): same URL N=8 upper bound' >&2 && exit 1"

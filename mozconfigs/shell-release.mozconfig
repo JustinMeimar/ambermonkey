@@ -1,0 +1,15 @@
+export CC=clang
+export CXX=clang++
+export AS=clang
+
+ac_add_options --enable-application=js
+ac_add_options --enable-optimize
+ac_add_options --enable-release
+ac_add_options --disable-debug
+ac_add_options --disable-warnings-as-errors
+ac_add_options --enable-ccache=sccache
+ac_add_options --enable-debug-symbols
+ac_add_options --enable-build-backends=CompileDB,RecursiveMake
+
+mk_add_options MOZ_PARALLEL_BUILD=12
+mk_add_options MOZ_OBJDIR=@TOPSRCDIR@/build-shell-release
