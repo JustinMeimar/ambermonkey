@@ -5,24 +5,25 @@ metrics, split by process type (content vs parent).
 For each process type we emit two Counters keyed by ic_body_id:
 
     attaches  : sum of ic-instance-attach events. One count per time
-                a stub is wired into an IC chain. Cheap and always
-                available; poor proxy for hotness.
+                a stub is wired into an IC chain. Cheap; poor proxy
+                for hotness (attach != execution).
 
-    entered   : sum of ic-instance-detach.entered_count over
-                non-fallback detaches. This is the number of times
-                the stub was executed while it was attached, sampled
-                from every stub that got unplugged during the run
-                (chain trimming, script destroy, GC purge, ...).
+    entered   : real per-stub execution counts. Composed from two
+                complementary sources so every stub that ever ran
+                contributes exactly once:
+                  * entries-flush emitted at process shutdown
+                    (JitInstrReporter observes xpcom-shutdown in the
+                    parent and content-child-shutdown in content),
+                    covering stubs still live when the flush fires.
+                  * ic-instance-detach.entered_count, covering stubs
+                    that were unplugged during the run and are gone
+                    by shutdown.
+                These populations are disjoint: a stub is either alive
+                at shutdown (counted in flush) or gone (counted in
+                detach), never both.
 
-                Known bias: stubs still alive at process exit are
-                NOT counted -- no shutdown sweep emits detach events
-                for them. The bias systematically under-weights
-                cold-startup-then-idle sites; hot loops that trigger
-                churn are captured well.
-
-Both maps are keyed by hex ic_body_id (source SHA of the CacheIR).
-Baseline is attach-only; there's no per-body execution counter for
-baseline scripts.
+Baseline is attach-only; the instrumentation has no per-baseline-body
+execution counter.
 
 Output shape:
     {
@@ -53,7 +54,8 @@ def parse(path, s):
         for ln in f:
             if ('"ic-instance-attach"' not in ln
                     and '"ic-instance-detach"' not in ln
-                    and '"baseline-compile"' not in ln):
+                    and '"baseline-compile"' not in ln
+                    and '"entries-flush"' not in ln):
                 continue
             o = json.loads(ln)
             k = o["kind"]
@@ -62,11 +64,24 @@ def parse(path, s):
             elif k == "baseline-compile":
                 s["attaches_bl"][o["semantic_id"]] += 1
             elif k == "ic-instance-detach":
+                # Detached-before-shutdown stubs: no snapshot can see
+                # them. Capture their lifetime enter counts here.
                 if o.get("is_fallback"):
                     continue
                 ec = int(o.get("entered_count", 0))
                 if ec:
                     s["entered_ic"][o["ic_body_id"]] += ec
+            elif k == "entries-flush":
+                # Still-live stubs at shutdown: enter counts are
+                # authoritative snapshots.
+                s["flush_count"][0] += 1
+                for row in o.get("scripts", []) or []:
+                    for e in row.get("ic_entries", []) or []:
+                        if e.get("is_fallback"):
+                            continue
+                        ec = int(e.get("entered_count", 0))
+                        if ec:
+                            s["entered_ic"][e["ic_body_id"]] += ec
 
 
 def new_proc_state():
@@ -74,6 +89,7 @@ def new_proc_state():
         "attaches_ic": collections.Counter(),
         "attaches_bl": collections.Counter(),
         "entered_ic":  collections.Counter(),
+        "flush_count": [0],
     }
 
 
@@ -95,6 +111,11 @@ def main(root):
     if not (per_proc["content"]["attaches_ic"]
             or per_proc["parent"]["attaches_ic"]):
         die("no ic-instance-attach events; InstrCh_IC disabled?")
+    if (per_proc["content"]["flush_count"][0] == 0
+            and per_proc["parent"]["flush_count"][0] == 0):
+        die("no entries-flush events; either the Demand channel is off "
+            "(JS_INSTR must include 'demand' or be 'all') or this Firefox "
+            "does not yet have the runtime-shutdown flush patch")
 
     out = {"ic": {}, "baseline": {}}
     for proc, s in per_proc.items():

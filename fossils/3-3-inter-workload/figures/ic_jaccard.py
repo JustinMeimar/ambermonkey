@@ -1,15 +1,16 @@
 #!/home/justin/tools/fossil/figures/.venv/bin/python
-"""Split-triangle heatmap: Jaccard (static) below diagonal, dynamic
-coverage above, per-variant set size on the diagonal.
+"""Split-triangle heatmap: Static Coverage below diagonal, Dynamic
+Coverage above, per-variant executed-body count on the diagonal.
 
-Lower triangle (i > j): symmetric Jaccard over IC-body hash sets.
+Lower triangle (i > j): symmetric static coverage over IC-body sets
+    static[i][j] = |set_i ∩ set_j| / |set_i ∪ set_j|
+    (formerly labelled Jaccard; renamed for symmetry with dynamic).
 Upper triangle (i < j): asymmetric dynamic coverage
-    coverage[i][j] = sum_{k in freqs[j] and hashes[i]} freqs[j][k]
-                     / sum_{k in freqs[j]} freqs[j][k]
-    i.e. what fraction of variant j's dynamic IC demand is covered
-    by variant i's static set. Diagonal is bold |A_i|.
-
-Aesthetics ported from frostmonkey ic-frequency jaccard_combined.py.
+    dynamic[i][j] = sum_{k in freqs[j] and set[i]} freqs[j][k]
+                    / sum_{k in freqs[j]} freqs[j][k]
+    i.e. what fraction of variant j's execution weight lands on
+    bodies that also appear in variant i's set. Diagonal is bold
+    |executed_i|.
 """
 
 import sys
@@ -143,16 +144,16 @@ x0 = bbox.x1 + 0.04
 
 cax_j = fig.add_axes([x0, bbox.y0 + bar_h + gap, bar_w, bar_h])
 cbar_j = fig.colorbar(mpl.cm.ScalarMappable(cmap=cmap_j, norm=norm_j), cax=cax_j)
-cbar_j.set_label("Jaccard", fontsize=fs["tick"])
+cbar_j.set_label("Static Coverage", fontsize=fs["tick"])
 cbar_j.ax.tick_params(labelsize=fs["tick"])
 
 cax_c = fig.add_axes([x0, bbox.y0, bar_w, bar_h])
 cbar_c = fig.colorbar(mpl.cm.ScalarMappable(cmap=cmap_c, norm=norm_c), cax=cax_c)
-cbar_c.set_label("Coverage", fontsize=fs["tick"])
+cbar_c.set_label("Dynamic Coverage", fontsize=fs["tick"])
 cbar_c.ax.tick_params(labelsize=fs["tick"])
 
 ax.set_title(
-    f"Jaccard (◣) / Coverage (◥)"
+    f"Static (◣) / Dynamic (◥) Coverage"
     f"    |U|={len(universe)}  |$\\bigcap$|={len(all_inter)}",
     pad=10,
 )

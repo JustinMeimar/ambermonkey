@@ -1,0 +1,20 @@
+name = "7-aot-corpus-collector"
+description = "Record the AOT artifact corpus the release browser compiles over tp6. Raptor drives playback; every site writes into one dir and the recorder's content addressed names form the union. Produces the corpus packed into the AOT image."
+default_iterations = 1
+allow_failure = true
+
+[variables]
+# Artifact names are identity hashes opened O_EXCL, so one dir collects
+# every site and every content process without coordination. A stale dump
+# would survive into the corpus, because the recorder treats an existing
+# file as success.
+INIT = "rm -rf @CORPUS; mkdir -p @CORPUS"
+
+# useAOTImage stays off: the recorder must observe the whole compile
+# stream, and an installed image would skip the compiles it satisfies.
+RECORD = "cd @FIREFOX && @MC_AOT ./mach raptor -t browsertime-tp6 --binary @BIN_AOT --setenv JIT_OPTION_aotRecordDir=@CORPUS --setenv @SANDBOX --setenv MOZ_HEADLESS=1 --page-cycles 1 --browser-cycles 1"
+
+EMIT = "printf '{\"blfun\":%s,\"ic\":%s,\"bytes\":%s}\\n' $(ls @CORPUS | grep -c '^blfun-') $(ls @CORPUS | grep -c '^ic-') $(du -sb @CORPUS | cut -f1)"
+
+[variants]
+tp6 = "$INIT; $RECORD 1>&2; $EMIT"
