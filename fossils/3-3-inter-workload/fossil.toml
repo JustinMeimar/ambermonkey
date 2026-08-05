@@ -1,0 +1,31 @@
+name = "3-3-inter-workload"
+description = "Inter-workload IC overlap: static Jaccard (below) + detach-weighted coverage (above), content-process bodies only. Feeds section III.4."
+default_iterations = 1
+allow_failure = true
+
+[analyze]
+ic-set = "analyses/ic_set.py"
+
+[figures.ic-jaccard]
+analysis = "ic-set"
+script = "figures/ic_jaccard.py"
+
+[variables]
+# Instrumentation env. `all` keeps every channel (IC, Snapshot,
+# Baseline, ...) enabled; the IC channel is the one we actually
+# consume here. Structural mode leaves emitted code bytes clean.
+INIT = "D=$(mktemp -d /tmp/amber-3-3.XXXXXX) && export JS_INSTR=all JS_INSTR_DIR=$D JS_INSTR_MODE=structural JS_INSTR_RUN_ID=$(basename $D)"
+EMIT = "python3 /home/justin/spidermonkey/ambermonkey/fossils/3-3-inter-workload/scripts/emit_ranks.py \"$D\" && rm -rf \"$D\""
+BT = "cd @FIREFOX && @SANDBOX @MC_BROWSER ./mach browsertime --headless -n 1 -b firefox --firefox.binaryPath @BIN_RELEASE"
+
+[variants]
+# Site set intentionally matches 3-2 so a workload's CDF shape and
+# its contribution to the intersection line up trivially.
+cnn           = "$INIT && $BT https://www.cnn.com/ 1>&2 && $EMIT"
+wikipedia     = "$INIT && $BT https://en.wikipedia.org/wiki/Barack_Obama 1>&2 && $EMIT"
+amazon        = "$INIT && $BT https://www.amazon.com/s?k=laptop 1>&2 && $EMIT"
+imdb          = "$INIT && $BT https://www.imdb.com/title/tt0084967/ 1>&2 && $EMIT"
+bing          = "$INIT && $BT https://www.bing.com/search?q=javascript 1>&2 && $EMIT"
+fandom        = "$INIT && $BT https://marvel.fandom.com/wiki/Black_Panther 1>&2 && $EMIT"
+stackoverflow = "$INIT && $BT https://stackoverflow.com/questions/927358/how-do-i-undo-the-most-recent-commits-in-git 1>&2 && $EMIT"
+example       = "$INIT && $BT https://example.com 1>&2 && $EMIT"

@@ -1,17 +1,22 @@
 #!/usr/bin/env python3
-"""Reduce a JS_INSTR_DIR of per-process JSONL into two ranked-count
-sequences on stdout, one for the IC-attach axis and one for the
-baseline-compile axis.
+"""Reduce a JS_INSTR_DIR of per-process JSONL into IC/baseline hash
+frequency maps, split by process type (content vs parent).
 
-Both are aggregated across all processes in the run (parent + content).
-For the CDF story we want concentration of demand on the workload as a
-whole, so cross-process aggregation is correct.
+Hash provenance is retained (not just anonymous ranked counts) so
+downstream Jaccard-style analyses can join across variants.
 
 Output shape:
-    {"ic":       {"ranked_counts": [n1, n2, ...]},
-     "baseline": {"ranked_counts": [n1, n2, ...]}}
+    {
+      "ic":       {"content": {"HEX": n, ...},
+                   "parent":  {"HEX": n, ...}},
+      "baseline": {"content": {"HEX": n, ...},
+                   "parent":  {"HEX": n, ...}}
+    }
 
-Crashes loudly on malformed JSON or events missing required fields.
+Process type is read from the filename (`<proc>.<pid>.jsonl`, per
+Instr.cpp JsonlSink::Open).
+
+Crashes loudly on missing files or fields.
 
 Usage: emit_ranks.py DIR   (writes JSON to stdout)
 """
@@ -27,7 +32,7 @@ def die(msg):
     sys.exit(1)
 
 
-def parse(path, ic_counts, bl_counts):
+def parse(path, ic, bl):
     with open(path) as f:
         for ln in f:
             if '"ic-instance-attach"' not in ln \
@@ -36,29 +41,32 @@ def parse(path, ic_counts, bl_counts):
             o = json.loads(ln)
             k = o["kind"]
             if k == "ic-instance-attach":
-                ic_counts[o["ic_body_id"]] += 1
+                ic[o["ic_body_id"]] += 1
             elif k == "baseline-compile":
-                bl_counts[o["semantic_id"]] += 1
+                bl[o["semantic_id"]] += 1
 
 
 def main(root):
-    ic = collections.Counter()
-    bl = collections.Counter()
+    ic = {"content": collections.Counter(), "parent": collections.Counter()}
+    bl = {"content": collections.Counter(), "parent": collections.Counter()}
     n_files = 0
     for fn in sorted(os.listdir(root)):
         if not fn.endswith(".jsonl"):
             continue
+        proc = fn.split(".", 1)[0]
+        if proc not in ic:
+            continue
         n_files += 1
-        parse(os.path.join(root, fn), ic, bl)
+        parse(os.path.join(root, fn), ic[proc], bl[proc])
     if n_files == 0:
-        die(f"no .jsonl files in {root}")
-    if not ic:
+        die(f"no content/parent .jsonl files in {root}")
+    if not (ic["content"] or ic["parent"]):
         die("no ic-instance-attach events; InstrCh_IC disabled?")
-    if not bl:
+    if not (bl["content"] or bl["parent"]):
         die("no baseline-compile events; InstrCh_Baseline disabled?")
     out = {
-        "ic": {"ranked_counts": [c for _, c in ic.most_common()]},
-        "baseline": {"ranked_counts": [c for _, c in bl.most_common()]},
+        "ic":       {p: dict(c) for p, c in ic.items()},
+        "baseline": {p: dict(c) for p, c in bl.items()},
     }
     json.dump(out, sys.stdout)
     sys.stdout.write("\n")

@@ -34,30 +34,20 @@ def total_smaps(procs):
     return dict(total)
 
 
-def crosscheck(checkpoint, pool_used, pool_unused, mapped):
-    reporter = checkpoint["reporter"]
+def crosscheck(reporter, mapped):
     if reporter is None:
         return {"available": 0}
 
-    used_delta = pool_used - reporter["code_used_bytes"]
+    low = reporter["code_used_bytes"] + reporter["code_unused_bytes"]
+    high = low + reporter["code_sundries_bytes"]
     return {
         "available": 1,
-        "code_by_kind": reporter["code_by_kind"],
-        "used_bytes": reporter["code_used_bytes"],
-        "unused_bytes": reporter["code_unused_bytes"],
-        "mapped_bytes": reporter["code_mapped_bytes"],
-        "used_delta_bytes": used_delta,
-        "unused_delta_bytes": pool_unused - reporter["code_unused_bytes"],
-        "mapped_delta_bytes": mapped - reporter["code_mapped_bytes"],
-        "used_rel_error": (
-            abs(used_delta) / reporter["code_used_bytes"]
-            if reporter["code_used_bytes"] else 0
-        ),
-        "processes_reported": reporter["processes_reported"],
-        "processes_with_js": reporter["processes_with_js"],
-        "processes_instrumented": reporter["processes_instrumented"],
-        "processes_missing_snapshot": reporter["processes_missing_snapshot"],
-        "mmap_join_mismatches": reporter["mmap_join_mismatches"],
+        "reported_low_bytes": low,
+        "reported_high_bytes": high,
+        "measured_bytes": mapped,
+        "within_bracket": int(low <= mapped <= high),
+        "excess_bytes": max(0, mapped - high) or min(0, mapped - low),
+        "missing_snapshot_pids": reporter["missing_snapshot_pids"],
     }
 
 
@@ -77,7 +67,7 @@ def checkpoint_row(checkpoint):
         "index": checkpoint["index"],
         "name": checkpoint["name"],
         "processes": dict(kinds),
-        "reporter": crosscheck(checkpoint, pool_used, pool_unused, mapped),
+        "reporter": crosscheck(checkpoint["reporter"], mapped),
         "code_bytes": code_bytes,
         "mmap_bytes": mapped,
         "pool_used_bytes": pool_used,
@@ -127,13 +117,13 @@ def main():
         "crosscheck": {
             "checkpoints_checked": len(checked),
             "checkpoints_without_report": summary["checkpoints_without_report"],
-            "worst_used_rel_error": max(
-                (c["used_rel_error"] for c in checked), default=None),
-            "processes_missing_snapshot": sorted({
-                pid for c in checked for pid in c["processes_missing_snapshot"]
+            "checkpoints_outside_bracket": [
+                c["name"] for name, c in checkpoints.items()
+                if c["reporter"]["available"] and not c["reporter"]["within_bracket"]
+            ],
+            "missing_snapshot_pids": sorted({
+                pid for c in checked for pid in c["missing_snapshot_pids"]
             }),
-            "mmap_join_mismatches": sum(
-                len(c["mmap_join_mismatches"]) for c in checked),
         },
         "checkpoints": checkpoints,
     }

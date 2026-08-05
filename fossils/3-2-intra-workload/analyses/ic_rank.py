@@ -1,6 +1,13 @@
 #!/usr/bin/env python3
-"""Pluck the IC-attach ranked_counts from the variant's reduced JSON."""
+"""Derive the IC-attach ranked_counts for the pareto banded CDF.
 
+Aggregates parent+content by-hash maps into one, then emits counts
+sorted descending. The banded CDF asks "what fraction of dynamic IC
+demand is served by the top-k stubs?", so cross-process aggregation
+is the right shape.
+"""
+
+import collections
 import json
 import sys
 
@@ -13,10 +20,14 @@ def main():
         out = "\n".join(out)
     reduced = json.loads(out.strip())
     ic = reduced["ic"]
-    if not ic["ranked_counts"]:
-        print("ic_rank: FATAL: ic.ranked_counts is empty", file=sys.stderr)
+    merged = collections.Counter()
+    for proc in ("content", "parent"):
+        merged.update(ic.get(proc, {}))
+    if not merged:
+        print("ic_rank: FATAL: no IC-attach hashes", file=sys.stderr)
         sys.exit(1)
-    json.dump(ic, sys.stdout)
+    ranked = sorted(merged.values(), reverse=True)
+    json.dump({"ranked_counts": ranked}, sys.stdout)
     sys.stdout.write("\n")
 
 

@@ -24,7 +24,7 @@ BT = "cd @FIREFOX && @SANDBOX @MC_BROWSER ./mach browsertime --headless -n 1 -b 
 # Same site set as frostmonkey's ic-frequency so the outlier stories
 # are already familiar and the two projects' banded CDFs read as
 # siblings.
-reddit        = "$INIT && $BT https://www.reddit.com/r/technology/comments/9sqwyh/we_posed_as_100_senators_to_run_ads_on_facebook/ 1>&2 && $EMIT"
+cnn           = "$INIT && $BT https://www.cnn.com/ 1>&2 && $EMIT"
 wikipedia     = "$INIT && $BT https://en.wikipedia.org/wiki/Barack_Obama 1>&2 && $EMIT"
 amazon        = "$INIT && $BT https://www.amazon.com/s?k=laptop 1>&2 && $EMIT"
 imdb          = "$INIT && $BT https://www.imdb.com/title/tt0084967/ 1>&2 && $EMIT"

@@ -8,15 +8,22 @@ import os
 import re
 import sys
 
-# JS::CodeSizes fields, reported per zone as .../code/<field>. The first
-# four sum to ExecutablePool::usedCodeBytes(), which is the same quantity
-# the snapshot footprints report, so the two are directly comparable.
 CODE_KINDS = ("ion", "baseline", "regexp", "other", "unused")
 CODE_PATH = re.compile(r"/code/(%s)$" % "|".join(CODE_KINDS))
-INSTR_PREFIX = "explicit/js-instrumentation/"
-# Utility processes append extra keys, e.g. "Utility (pid 47038,
-# sandboxingKind 0)", so the pid is not always the whole parenthetical.
-PID_LABEL = re.compile(r"^(.*?)\s*\(pid (\d+)[,)]")
+
+# A zone value below 8 KB is collapsed into this bucket instead of being
+# reported on its own, so the code/* paths are a lower bound and this is
+# the remainder. It also absorbs the few non-code non-heap zone
+# reporters, which is why it brackets rather than closes the gap.
+SUNDRIES_PATH = "/sundries/other-heap"
+
+# Emitted by JitInstrReporter, so its presence marks a process that
+# should also have written a snapshot.
+INSTR_MARKER = "explicit/js-instrumentation/live-mmap-bytes"
+
+# Utility processes append extra keys: "Utility (pid 47038,
+# sandboxingKind 0)".
+PID_LABEL = re.compile(r"\(pid (\d+)[,)]")
 
 
 def die(message):
@@ -57,29 +64,29 @@ def read_memory_report(path):
     if data.get("version") != 1:
         die(f"{path}: unexpected memory report version {data.get('version')}")
 
-    procs = {}
+    code = collections.Counter()
+    sundries = 0
+    pids = set()
     for report in data["reports"]:
-        label = PID_LABEL.match(report["process"])
-        if label is None:
-            die(f"{path}: unparseable process label {report['process']!r}")
-        pid = int(label.group(2))
-        proc = procs.get(pid)
-        if proc is None:
-            proc = procs[pid] = {
-                "name": label.group(1),
-                "code": dict.fromkeys(CODE_KINDS, 0),
-                "instr": {},
-                "has_js": False,
-            }
         reported = report["path"]
-        if "js-non-window" in reported:
-            proc["has_js"] = True
         kind = CODE_PATH.search(reported)
         if kind is not None:
-            proc["code"][kind.group(1)] += report["amount"]
-        elif reported.startswith(INSTR_PREFIX):
-            proc["instr"][reported[len(INSTR_PREFIX):]] = report["amount"]
-    return procs
+            code[kind.group(1)] += report["amount"]
+        elif reported.endswith(SUNDRIES_PATH) and "zone(" in reported:
+            sundries += report["amount"]
+        elif reported == INSTR_MARKER:
+            label = PID_LABEL.search(report["process"])
+            if label is None:
+                die(f"{path}: unparseable process {report['process']!r}")
+            pids.add(int(label.group(1)))
+
+    used = sum(code[kind] for kind in CODE_KINDS if kind != "unused")
+    return {
+        "code_used_bytes": used,
+        "code_unused_bytes": code["unused"],
+        "code_sundries_bytes": sundries,
+        "instrumented_pids": sorted(pids),
+    }
 
 
 def load_memory_reports(root):
@@ -96,37 +103,6 @@ def load_memory_reports(root):
     if not reports:
         die(f"no memory-report-*.json.gz in {root}")
     return reports
-
-
-def reporter_summary(report, snapshotted, mmap_by_pid):
-    code = collections.Counter()
-    instrumented = []
-    join_mismatches = []
-    for pid, proc in report.items():
-        if "live-mmap-bytes" not in proc["instr"]:
-            continue
-        instrumented.append(pid)
-        code.update(proc["code"])
-        published = proc["instr"]["live-mmap-bytes"]
-        if pid in mmap_by_pid and published != mmap_by_pid[pid]:
-            join_mismatches.append({
-                "pid": pid,
-                "reported_mmap_bytes": published,
-                "snapshot_mmap_bytes": mmap_by_pid[pid],
-            })
-
-    used = sum(code[kind] for kind in CODE_KINDS if kind != "unused")
-    return {
-        "code_by_kind": {kind: code[kind] for kind in CODE_KINDS},
-        "code_used_bytes": used,
-        "code_unused_bytes": code["unused"],
-        "code_mapped_bytes": used + code["unused"],
-        "processes_reported": len(report),
-        "processes_with_js": sum(1 for p in report.values() if p["has_js"]),
-        "processes_instrumented": len(instrumented),
-        "processes_missing_snapshot": sorted(set(instrumented) - snapshotted),
-        "mmap_join_mismatches": join_mismatches,
-    }
 
 
 def split_token(token):
@@ -249,11 +225,13 @@ def summarize(root):
                 "pool_unused_bytes": sum(row["unused_bytes"]
                                          for row in footprints),
                 "smaps": physical_summary(snapshot["smaps"]),
-                "reporter_code": (report[proc.pid]["code"]
-                                  if report and proc.pid in report else None),
             })
-        snapshotted = {row["pid"] for row in rows}
-        mmap_by_pid = {row["pid"]: row["mmap_bytes"] for row in rows}
+        if report is not None:
+            snapshotted = {row["pid"] for row in rows}
+            report = dict(report, missing_snapshot_pids=[
+                pid for pid in report["instrumented_pids"]
+                if pid not in snapshotted
+            ])
         checkpoints.append({
             "index": index,
             "name": name,
@@ -261,8 +239,7 @@ def summarize(root):
             "token": token,
             "abs_us": timestamp,
             "procs": rows,
-            "reporter": (reporter_summary(report, snapshotted, mmap_by_pid)
-                         if report is not None else None),
+            "reporter": report,
         })
 
     peak = max(checkpoints, key=lambda checkpoint: sum(
