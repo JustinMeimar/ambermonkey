@@ -1,20 +1,50 @@
 name = "7-aot-corpus-collector"
-description = "Record the AOT artifact corpus the release browser compiles over tp6. Raptor drives playback; every site writes into one dir and the recorder's content addressed names form the union. Produces the corpus packed into the AOT image."
+description = "Record the AOT artifact corpus the release browser compiles over tp6. One raptor invocation per site, each writing to its own subdir, so per-site sets are recoverable and intersection/union are cheap filename set-ops. Feeds the soft-intersection corpus builder that packs the AOT image."
 default_iterations = 1
-allow_failure = true
+allow_failure = false
 
 [variables]
-# Artifact names are identity hashes opened O_EXCL, so one dir collects
-# every site and every content process without coordination. A stale dump
-# would survive into the corpus, because the recorder treats an existing
-# file as success.
-INIT = "rm -rf @CORPUS; mkdir -p @CORPUS"
+# Per-site subdir under @CORPUS. O_EXCL still dedups within a site.
+# Wipe per site before recording; a stale dump would survive as a
+# recorder EEXIST success and pollute the site's set.
+INIT = "rm -rf @CORPUS/$SITE && mkdir -p @CORPUS/$SITE"
 
 # useAOTImage stays off: the recorder must observe the whole compile
 # stream, and an installed image would skip the compiles it satisfies.
-RECORD = "cd @FIREFOX && @MC_AOT ./mach raptor -t browsertime-tp6 --binary @BIN_AOT --setenv JIT_OPTION_aotRecordDir=@CORPUS --setenv @SANDBOX --setenv MOZ_HEADLESS=1 --page-cycles 1 --browser-cycles 1"
+RECORD = "cd @FIREFOX && @MC_AOT ./mach raptor -t $SITE --binary @BIN_AOT --setenv JIT_OPTION_aotRecordDir=@CORPUS/$SITE --setenv @SANDBOX --setenv MOZ_HEADLESS=1 --page-cycles 1 --browser-cycles 1"
 
-EMIT = "printf '{\"blfun\":%s,\"ic\":%s,\"bytes\":%s}\\n' $(ls @CORPUS | grep -c '^blfun-') $(ls @CORPUS | grep -c '^ic-') $(du -sb @CORPUS | cut -f1)"
+EMIT = "printf '{\"site\":\"%s\",\"blfun\":%s,\"ic\":%s,\"bytes\":%s}\\n' $SITE $(ls @CORPUS/$SITE | grep -c '^blfun-') $(ls @CORPUS/$SITE | grep -c '^ic-') $(du -sb @CORPUS/$SITE | cut -f1)"
 
 [variants]
-tp6 = "$INIT; $RECORD 1>&2; $EMIT"
+amazon         = "SITE=amazon;         $INIT && $RECORD 1>&2 && $EMIT"
+bing-search    = "SITE=bing-search;    $INIT && $RECORD 1>&2 && $EMIT"
+buzzfeed       = "SITE=buzzfeed;       $INIT && $RECORD 1>&2 && $EMIT"
+cnn            = "SITE=cnn;            $INIT && $RECORD 1>&2 && $EMIT"
+ebay           = "SITE=ebay;           $INIT && $RECORD 1>&2 && $EMIT"
+espn           = "SITE=espn;           $INIT && $RECORD 1>&2 && $EMIT"
+expedia        = "SITE=expedia;        $INIT && $RECORD 1>&2 && $EMIT"
+facebook       = "SITE=facebook;       $INIT && $RECORD 1>&2 && $EMIT"
+fandom         = "SITE=fandom;         $INIT && $RECORD 1>&2 && $EMIT"
+google-docs    = "SITE=google-docs;    $INIT && $RECORD 1>&2 && $EMIT"
+google-mail    = "SITE=google-mail;    $INIT && $RECORD 1>&2 && $EMIT"
+google-search  = "SITE=google-search;  $INIT && $RECORD 1>&2 && $EMIT"
+google-slides  = "SITE=google-slides;  $INIT && $RECORD 1>&2 && $EMIT"
+imdb           = "SITE=imdb;           $INIT && $RECORD 1>&2 && $EMIT"
+imgur          = "SITE=imgur;          $INIT && $RECORD 1>&2 && $EMIT"
+instagram      = "SITE=instagram;      $INIT && $RECORD 1>&2 && $EMIT"
+linkedin       = "SITE=linkedin;       $INIT && $RECORD 1>&2 && $EMIT"
+microsoft      = "SITE=microsoft;      $INIT && $RECORD 1>&2 && $EMIT"
+netflix        = "SITE=netflix;        $INIT && $RECORD 1>&2 && $EMIT"
+nytimes        = "SITE=nytimes;        $INIT && $RECORD 1>&2 && $EMIT"
+office         = "SITE=office;         $INIT && $RECORD 1>&2 && $EMIT"
+outlook        = "SITE=outlook;        $INIT && $RECORD 1>&2 && $EMIT"
+paypal         = "SITE=paypal;         $INIT && $RECORD 1>&2 && $EMIT"
+pinterest      = "SITE=pinterest;      $INIT && $RECORD 1>&2 && $EMIT"
+reddit         = "SITE=reddit;         $INIT && $RECORD 1>&2 && $EMIT"
+tumblr         = "SITE=tumblr;         $INIT && $RECORD 1>&2 && $EMIT"
+twitch         = "SITE=twitch;         $INIT && $RECORD 1>&2 && $EMIT"
+twitter        = "SITE=twitter;        $INIT && $RECORD 1>&2 && $EMIT"
+wikia          = "SITE=wikia;          $INIT && $RECORD 1>&2 && $EMIT"
+wikipedia      = "SITE=wikipedia;      $INIT && $RECORD 1>&2 && $EMIT"
+yahoo-mail     = "SITE=yahoo-mail;     $INIT && $RECORD 1>&2 && $EMIT"
+youtube        = "SITE=youtube;        $INIT && $RECORD 1>&2 && $EMIT"

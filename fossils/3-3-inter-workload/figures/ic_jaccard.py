@@ -14,6 +14,7 @@ Upper triangle (i < j): asymmetric dynamic coverage
 """
 
 import sys
+from decimal import ROUND_DOWN, Decimal
 
 import matplotlib as mpl
 import matplotlib.pyplot as plt
@@ -37,6 +38,14 @@ def _tag(metric, key):
     if not metric.children or key not in metric.children:
         return ""
     return (metric.children[key].tag or "").strip()
+
+
+def _floor_2(value):
+    """Format a non-negative coverage value by rounding down."""
+    return format(
+        Decimal(str(value)).quantize(Decimal("0.00"), rounding=ROUND_DOWN),
+        ".2f",
+    )
 
 
 hash_sets, freq_maps = {}, {}
@@ -113,7 +122,7 @@ for i in range(n):
                 facecolor=cmap_j(norm_j(v)), edgecolor="white", linewidth=1.5,
             ))
             color = "white" if norm_j(v) > 0.6 else "black"
-            ax.text(j, i, f"{v:.2f}",
+            ax.text(j, i, _floor_2(v),
                     ha="center", va="center", fontsize=fs["cell"], color=color)
         else:
             v = coverage[i][j]
@@ -122,7 +131,7 @@ for i in range(n):
                 facecolor=cmap_c(norm_c(v)), edgecolor="white", linewidth=1.5,
             ))
             color = "white" if norm_c(v) > 0.6 else "black"
-            ax.text(j, i, f"{v:.2f}",
+            ax.text(j, i, _floor_2(v),
                     ha="center", va="center", fontsize=fs["cell"], color=color)
 
 ax.set_xlim(-0.5, n - 0.5)
