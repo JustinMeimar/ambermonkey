@@ -41,21 +41,11 @@ State.
 
 ## Tables
 
-`coverage_tables.py` folds buried records into the `{columns, rows}`
-shape the typst `json-table` loader reads. Records are named on the
-command line rather than taken as the last N, because a record is
-pinned to whichever image was installed when it ran and nothing inside
-the record says which image that was. `--last` would silently pool two
-different corpora into one distribution.
-
-Holding the workload fixed and varying the corpus is an ablation, and
-`--delta` reports the second column minus the first:
-
-    python3 scripts/coverage_tables.py --records records --delta \
-      full=<record-id> ics-selfhosted=<record-id>
-
-Holding the corpus fixed and varying the workload asks how far a corpus
-generalizes; pass the two workload records with no `--delta`.
+`figures/coverage_table.py` is registered as the `coverage-table`
+figure. Fossil hands it the cross-variant fold on stdin and it writes
+`figures/coverage-table.json` for the typst `json-table` loader --
+rows are the paper-relevant subset of the reducer's metrics, one
+column per variant, cells pre-formatted as `mean ± stddev`.
 
 ### Reading the IC columns
 

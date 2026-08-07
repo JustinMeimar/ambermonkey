@@ -6,9 +6,9 @@ allow_failure = false
 [analyze]
 coverage = "analyses/parse_coverage.py"
 
-[figures.summary-table]
+[figures.coverage-table]
 analysis = "coverage"
-script = "figures/summary_table.py"
+script = "figures/coverage_table.py"
 
 [variables]
 # Per-iteration scratch dir. AOTCoverage writes one file per firefox
@@ -31,7 +31,3 @@ REDUCE = "python3 /home/justin/spidermonkey/ambermonkey/fossils/7-2-aot-corpus-c
 [variants]
 jetstream3   = "$INIT && $RAPTOR -t jetstream3   1>&2 && $REDUCE"
 speedometer3 = "$INIT && $RAPTOR -t speedometer3 1>&2 && $REDUCE"
-
-[figures.coverage-table]
-analysis = "coverage"
-script = "figures/coverage_table.py"

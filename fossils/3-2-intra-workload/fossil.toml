@@ -5,6 +5,7 @@ allow_failure = true
 
 [analyze]
 ic-rank = "analyses/ic_rank.py"
+ic-top-table = "analyses/ic_top_table.py"
 
 [figures.pareto-band-ic]
 analysis = "ic-rank"
