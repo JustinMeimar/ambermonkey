@@ -11,6 +11,7 @@ MC_BROWSER = "MOZCONFIG=/home/justin/spidermonkey/ambermonkey/mozconfigs/browser
 MC_AOT = "MOZCONFIG=/home/justin/spidermonkey/ambermonkey/mozconfigs/browser-release-aot.mozconfig"
 SANDBOX = "MOZ_DISABLE_CONTENT_SANDBOX=1"
 CORPUS = "/tmp/amber-aot-corpus"
+SELFHOSTED = "/tmp/amber-aot-selfhosted"
 TESTS_DIR = "/home/justin/spidermonkey/tests"
 OCTANE_DIR = "$FIREFOX/js/src/octane"
 

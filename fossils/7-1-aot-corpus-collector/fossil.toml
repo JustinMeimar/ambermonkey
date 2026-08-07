@@ -1,5 +1,5 @@
-name = "7-aot-corpus-collector"
-description = "Record the AOT artifact corpus the release browser compiles over tp6. One raptor invocation per site, each writing to its own subdir, so per-site sets are recoverable and intersection/union are cheap filename set-ops. Feeds the soft-intersection corpus builder that packs the AOT image."
+name = "7-1-aot-corpus-collector"
+description = "Record the AOT artifact corpus the release browser compiles over tp6. One raptor invocation per site, each writing to its own subdir, so per-site sets are recoverable and intersection/union are cheap filename set-ops. Sites record both kinds so the baseline sharing curve stays measurable, but the selector drops their baseline functions: 7-2 showed those do not transfer across workloads. The self-hosted variant records the one baseline set that does, exhaustively, from the shell. Both feed the soft-intersection builder that packs the image."
 default_iterations = 1
 allow_failure = false
 
@@ -15,7 +15,21 @@ RECORD = "cd @FIREFOX && @MC_AOT ./mach raptor -t $SITE --binary @BIN_AOT --sete
 
 EMIT = "printf '{\"site\":\"%s\",\"blfun\":%s,\"ic\":%s,\"bytes\":%s}\\n' $SITE $(ls @CORPUS/$SITE | grep -c '^blfun-') $(ls @CORPUS/$SITE | grep -c '^ic-') $(du -sb @CORPUS/$SITE | cut -f1)"
 
+# The self-hosted library is the one baseline set the corpus keeps, and no
+# raptor run can produce it: the exhaustive sweep is a shell flag with no
+# environment trigger, so a browser only records what the page happened to
+# call. Lands outside @CORPUS so the selector cannot mistake it for a site.
+#
+# --spectre-mitigations=on is mandatory, not cosmetic. The shell defaults the
+# object and string mitigations off and the browser turns them on by pref;
+# those two bits are fingerprinted and change the emitted code, so without the
+# flag every blob here is code the browser will refuse to install.
+SH_RECORD = "rm -rf @SELFHOSTED && @JSSHELL_AOT --spectre-mitigations=on --aot-record=@SELFHOSTED --aot-record-self-hosted -e 'quit(0);'"
+
+SH_EMIT = "printf '{\"site\":\"self-hosted\",\"blfun\":%s,\"ic\":%s,\"bytes\":%s}\\n' $(ls @SELFHOSTED | grep -c '^blfun-') $(ls @SELFHOSTED | grep -c '^ic-') $(du -sb @SELFHOSTED | cut -f1)"
+
 [variants]
+self-hosted    = "$SH_RECORD 1>&2 && $SH_EMIT"
 amazon         = "SITE=amazon;         $INIT && $RECORD 1>&2 && $EMIT"
 bing-search    = "SITE=bing-search;    $INIT && $RECORD 1>&2 && $EMIT"
 buzzfeed       = "SITE=buzzfeed;       $INIT && $RECORD 1>&2 && $EMIT"

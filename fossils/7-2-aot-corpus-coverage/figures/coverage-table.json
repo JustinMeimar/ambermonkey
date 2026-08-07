@@ -1,0 +1,160 @@
+{
+  "coverage": {
+    "columns": [
+      "metric",
+      "unit",
+      "jetstream3"
+    ],
+    "rows": [
+      [
+        "Baseline corpus size",
+        "",
+        236.0
+      ],
+      [
+        "Baseline blobs used",
+        "",
+        46.333333333333336
+      ],
+      [
+        "Baseline utilization",
+        "%",
+        19.63276836158192
+      ],
+      [
+        "Baseline AOT hit rate",
+        "%",
+        0.23672694385474805
+      ],
+      [
+        "IC corpus size",
+        "",
+        1347.0
+      ],
+      [
+        "IC blobs used",
+        "",
+        1091.0
+      ],
+      [
+        "IC utilization",
+        "%",
+        80.99480326651819
+      ],
+      [
+        "IC served by AOT",
+        "",
+        1029415.0
+      ],
+      [
+        "IC served by zone cache",
+        "",
+        358339.6666666667
+      ],
+      [
+        "IC compiles",
+        "",
+        76097.0
+      ],
+      [
+        "IC AOT hit rate",
+        "%",
+        70.32234454400853
+      ],
+      [
+        "IC shapes requested",
+        "",
+        1389.0
+      ],
+      [
+        "IC shapes served by AOT",
+        "",
+        1091.0
+      ],
+      [
+        "IC workload coverage",
+        "%",
+        78.54571634269259
+      ]
+    ]
+  },
+  "stddev": {
+    "columns": [
+      "metric",
+      "unit",
+      "jetstream3"
+    ],
+    "rows": [
+      [
+        "Baseline corpus size",
+        "",
+        0.0
+      ],
+      [
+        "Baseline blobs used",
+        "",
+        0.5773502691896257
+      ],
+      [
+        "Baseline utilization",
+        "%",
+        0.24463994457187518
+      ],
+      [
+        "Baseline AOT hit rate",
+        "%",
+        0.0004344296697722847
+      ],
+      [
+        "IC corpus size",
+        "",
+        0.0
+      ],
+      [
+        "IC blobs used",
+        "",
+        0.0
+      ],
+      [
+        "IC utilization",
+        "%",
+        0.0
+      ],
+      [
+        "IC served by AOT",
+        "",
+        1336.5810862046492
+      ],
+      [
+        "IC served by zone cache",
+        "",
+        230.56524745358598
+      ],
+      [
+        "IC compiles",
+        "",
+        38.03945320322047
+      ],
+      [
+        "IC AOT hit rate",
+        "%",
+        0.023975404702924932
+      ],
+      [
+        "IC shapes requested",
+        "",
+        0.0
+      ],
+      [
+        "IC shapes served by AOT",
+        "",
+        0.0
+      ],
+      [
+        "IC workload coverage",
+        "%",
+        0.0
+      ]
+    ]
+  }
+}

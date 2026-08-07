@@ -11,9 +11,14 @@ from pathlib import Path
 
 STRICT_SINGLETONS = ("configuration.aotb",)
 LOOSE_SINGLETONS = ("interp.aotb",)
-ARTIFACT_PREFIXES = ("blfun-", "ic-")
+ARTIFACT_KINDS = ("blfun", "ic")
+SELF_HOSTED_KIND = "blfun"
 ARTIFACT_SUFFIX = ".aotb"
 LINK_MODES = ("copy", "symlink", "hardlink")
+
+
+def digest(path: Path) -> str:
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
 def place(src: Path, dst: Path, mode: str) -> None:
@@ -27,8 +32,12 @@ def place(src: Path, dst: Path, mode: str) -> None:
         raise ValueError(f"unknown link mode: {mode}")
 
 
-def is_artifact(name: str) -> bool:
-    return name.endswith(ARTIFACT_SUFFIX) and name.startswith(ARTIFACT_PREFIXES)
+def kind_of(name: str) -> str:
+    return name.split("-", 1)[0]
+
+
+def is_artifact(name: str, kinds: frozenset[str]) -> bool:
+    return name.endswith(ARTIFACT_SUFFIX) and kind_of(name) in kinds
 
 
 def discover_sites(root: Path) -> list[Path]:
@@ -38,11 +47,11 @@ def discover_sites(root: Path) -> list[Path]:
     return sites
 
 
-def index_artifacts(sites: list[Path]) -> dict[str, dict]:
+def index_artifacts(sites: list[Path], kinds: frozenset[str]) -> dict[str, dict]:
     index: dict[str, dict] = {}
     for site in sites:
         for f in site.iterdir():
-            if not is_artifact(f.name):
+            if not is_artifact(f.name, kinds):
                 continue
             entry = index.get(f.name)
             if entry is None:
@@ -59,7 +68,7 @@ def pick_singletons(sites: list[Path]) -> tuple[dict[str, Path], list[str]]:
         candidates = [s / name for s in sites if (s / name).exists()]
         if not candidates:
             sys.exit(f"soft_intersection: no site produced {name}")
-        digests = {hashlib.sha256(c.read_bytes()).hexdigest() for c in candidates}
+        digests = {digest(c) for c in candidates}
         if len(digests) > 1:
             sys.exit(
                 f"soft_intersection: {name} differs across sites "
@@ -72,7 +81,7 @@ def pick_singletons(sites: list[Path]) -> tuple[dict[str, Path], list[str]]:
             sys.exit(f"soft_intersection: no site produced {name}")
         buckets: dict[str, list[Path]] = {}
         for c in candidates:
-            buckets.setdefault(hashlib.sha256(c.read_bytes()).hexdigest(), []).append(c)
+            buckets.setdefault(digest(c), []).append(c)
         if len(buckets) > 1:
             sizes = sorted(((len(v), k) for k, v in buckets.items()), reverse=True)
             notes.append(
@@ -82,6 +91,38 @@ def pick_singletons(sites: list[Path]) -> tuple[dict[str, Path], list[str]]:
         majority_digest = max(buckets, key=lambda k: len(buckets[k]))
         picks[name] = buckets[majority_digest][0]
     return picks, notes
+
+
+def overlay_self_hosted(src: Path, config: Path, output: Path, mode: str) -> dict:
+    if not src.is_dir():
+        sys.exit(f"soft_intersection: {src} is not a directory")
+    theirs = src / "configuration.aotb"
+    if not theirs.exists():
+        sys.exit(f"soft_intersection: {src} has no configuration.aotb")
+    # Load-bearing, not a formality. The shell defaults the spectre object and
+    # string mitigations off while the browser turns them on by pref, and those
+    # two bits change the code that gets generated. Recording the self-hosted
+    # sweep without matching them yields blobs the installer will reject.
+    if digest(theirs) != digest(config):
+        sys.exit(
+            "soft_intersection: self-hosted configuration.aotb differs from the "
+            "per-site one; the two recordings disagree on build or JitOptions "
+            "and their blobs cannot be packed together"
+        )
+    picked, picked_bytes = 0, 0
+    for f in sorted(src.iterdir()):
+        if not is_artifact(f.name, frozenset({SELF_HOSTED_KIND})):
+            continue
+        place(f, output / f.name, mode)
+        picked += 1
+        picked_bytes += f.stat().st_size
+    if not picked:
+        sys.exit(f"soft_intersection: no {SELF_HOSTED_KIND}- artifacts under {src}")
+    return {
+        "self_hosted_input": str(src),
+        "self_hosted_picked": picked,
+        "self_hosted_bytes": picked_bytes,
+    }
 
 
 def main() -> None:
@@ -99,7 +140,24 @@ def main() -> None:
         "--budget",
         type=int,
         required=True,
-        help="total byte budget for hashed artifacts (singletons excluded)",
+        help="total byte budget for hashed artifacts (singletons and --self-hosted excluded)",
+    )
+    ap.add_argument(
+        "--exclude-kind",
+        action="append",
+        choices=ARTIFACT_KINDS,
+        default=[],
+        metavar="KIND",
+        help=f"drop an artifact kind from the per-site index; repeatable "
+        f"(choices: {', '.join(ARTIFACT_KINDS)})",
+    )
+    ap.add_argument(
+        "--self-hosted",
+        type=Path,
+        default=None,
+        help="dir from a shell --aot-record --aot-record-self-hosted run; its "
+        "baseline functions are copied in whole, exempt from --budget and from "
+        "--exclude-kind",
     )
     ap.add_argument("--force", action="store_true", help="overwrite output dir if it exists")
     ap.add_argument(
@@ -115,6 +173,10 @@ def main() -> None:
     if args.budget <= 0:
         sys.exit("soft_intersection: --budget must be positive")
 
+    kinds = frozenset(ARTIFACT_KINDS) - frozenset(args.exclude_kind)
+    if not kinds and not args.self_hosted:
+        sys.exit("soft_intersection: every artifact kind excluded and no --self-hosted dir")
+
     if args.output.exists():
         if not args.force:
             sys.exit(f"soft_intersection: {args.output} exists (pass --force to overwrite)")
@@ -129,7 +191,7 @@ def main() -> None:
     for name, src in singletons.items():
         place(src, args.output / name, args.mode)
 
-    index = index_artifacts(sites)
+    index = index_artifacts(sites, kinds)
     eligible = [(name, meta) for name, meta in index.items()
                 if len(meta["sites"]) >= threshold_count]
     eligible.sort(key=lambda kv: (-len(kv[1]["sites"]), kv[1]["size"]))
@@ -150,6 +212,8 @@ def main() -> None:
         "threshold": args.threshold,
         "threshold_count": threshold_count,
         "budget_bytes": args.budget,
+        "kinds_included": sorted(kinds),
+        "kinds_excluded": sorted(set(args.exclude_kind)),
         "artifacts_seen": len(index),
         "artifacts_eligible": len(eligible),
         "artifacts_picked": picked_count,
@@ -160,6 +224,12 @@ def main() -> None:
         "mode": args.mode,
         "output": str(args.output),
     }
+    if args.self_hosted:
+        summary.update(
+            overlay_self_hosted(
+                args.self_hosted, singletons["configuration.aotb"], args.output, args.mode
+            )
+        )
     json.dump(summary, sys.stdout, indent=2)
     sys.stdout.write("\n")
 
