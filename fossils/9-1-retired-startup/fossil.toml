@@ -1,0 +1,40 @@
+name = "9-1-retired-startup"
+description = "JetStream 3 via raptor: 2x2 of code-delivery x activation-policy. Startup-Geometric first-iteration score + Worst-Case/Average secondaries. Feeds section 7 startup evaluation."
+default_iterations = 3
+allow_failure = false
+
+[analyze]
+jetstream3 = "analyses/parse_jetstream3.py"
+
+[figures.bar-chart]
+analysis = "jetstream3"
+script = "figures/bar_chart.py"
+
+[variables]
+# Raptor drives one browser cycle x one page cycle per invocation;
+# statistical repetition comes from default_iterations at the fossil
+# layer so each variant contributes 3 independent raptor runs.
+RAPTOR = "-t jetstream3 --app firefox --browser-cycles 1 --page-cycles 1"
+RESULT = "cat testing/mozharness/build/raptor.json"
+
+# AOT machinery on the release-aot browser. Single flag that loads the
+# baseline interpreter blob, self-hosted, and IC corpus that were
+# baked into the AOT image at build time. Ion is left enabled at its
+# default warmup threshold so the JIT tier structure matches the
+# runtime-gen variants; the axis we vary is baseline delivery, not
+# tier availability.
+AOT_ENV = "JIT_OPTION_useAOTImage=true"
+
+# Eager = baseline-interpreter warmup threshold 0. Mirrors the shell
+# --blinterp-eager flag used in fossil 7-jetstream-startup so the
+# activation axis is literally the same knob across both fossils.
+EAGER_ENV = "JIT_OPTION_baselineInterpreterWarmUpThreshold=0"
+
+PRE     = "cd @FIREFOX && @SANDBOX @MC_BROWSER"
+PRE_AOT = "cd @FIREFOX && @SANDBOX @MC_AOT"
+
+[variants]
+runtime-lazy  = "$PRE                    ./mach raptor $RAPTOR --binary @BIN_RELEASE 1>&2 && $RESULT"
+runtime-eager = "$PRE     $EAGER_ENV     ./mach raptor $RAPTOR --binary @BIN_RELEASE 1>&2 && $RESULT"
+aot-lazy      = "$PRE_AOT $AOT_ENV                ./mach raptor $RAPTOR --binary @BIN_AOT 1>&2 && $RESULT"
+aot-eager     = "$PRE_AOT $AOT_ENV $EAGER_ENV     ./mach raptor $RAPTOR --binary @BIN_AOT 1>&2 && $RESULT"

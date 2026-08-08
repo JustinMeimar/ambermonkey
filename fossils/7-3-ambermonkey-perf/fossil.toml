@@ -1,0 +1,32 @@
+name = "7-3-ambermonkey-perf"
+description = "Speedometer 3 strict-AOT tier ladder: interpreter only, AOT interpreter + ICs, AOT baseline, and default"
+default_iterations = 3
+allow_failure = false
+
+[analyze]
+speedometer-detail = "analyses/parse_speedometer.py"
+
+[variables]
+PRE = "cd @FIREFOX"
+RAPTOR = "-t speedometer3 --app firefox --browser-cycles 1 --page-cycles 3"
+RESULT = "cat testing/mozharness/build/raptor.json"
+CLEAN_JIT_ENV = "env -u MOZ_HEADLESS -u IONFLAGS -u JIT_OPTION_aotEnforce -u JIT_OPTION_aotOnly -u JIT_OPTION_aotRecordDir -u JIT_OPTION_aotSelfHostedBaselineOnly -u JIT_OPTION_baselineInterpreterWarmUpThreshold -u JIT_OPTION_baselineJit -u JIT_OPTION_disableJitBackend -u JIT_OPTION_ion -u JIT_OPTION_useAOTImage"
+ION_OFF = "--setpref javascript.options.ion=false"
+
+[variants]
+interp-only = "$PRE && $CLEAN_JIT_ENV @SANDBOX JIT_OPTION_disableJitBackend=true @MC_AOT ./mach raptor $RAPTOR --binary @BIN_AOT 1>&2 && $RESULT"
+aot-corpus = "$PRE && $CLEAN_JIT_ENV @SANDBOX JIT_OPTION_useAOTImage=true JIT_OPTION_aotOnly=true @MC_AOT ./mach raptor $RAPTOR $ION_OFF --binary @BIN_AOT 1>&2 && $RESULT"
+default-no-ion = "$PRE && $CLEAN_JIT_ENV @SANDBOX @MC_AOT ./mach raptor $RAPTOR $ION_OFF --binary @BIN_AOT 1>&2 && $RESULT"
+default = "$PRE && $CLEAN_JIT_ENV @SANDBOX @MC_AOT ./mach raptor $RAPTOR --binary @BIN_AOT 1>&2 && $RESULT"
+
+# oracle-aot-corpus = "$PRE && $CLEAN_JIT_ENV @SANDBOX JIT_OPTION_useAOTImage=true JIT_OPTION_aotOnly=true @MC_AOT ./mach raptor $RAPTOR $ION_OFF --binary @BIN_AOT 1>&2 && $RESULT"
+#aot-interp-ics = "$PRE && $CLEAN_JIT_ENV @SANDBOX JIT_OPTION_useAOTImage=true JIT_OPTION_aotOnly=true @MC_AOT ./mach raptor $RAPTOR $ION_OFF --setpref javascript.options.baselinejit=false --binary @BIN_AOT 1>&2 && $RESULT"
+#aot-interp-ics-baseline = "$PRE && $CLEAN_JIT_ENV @SANDBOX JIT_OPTION_aotOnly=true @MC_AOT ./mach raptor $RAPTOR $ION_OFF --binary @BIN_AOT 1>&2 && $RESULT"
+
+[figures.tier-throughput]
+analysis = "speedometer-detail"
+script = "figures/tier_throughput.py"
+
+[figures.aot-tradeoff]
+analysis = "speedometer-detail"
+script = "figures/aot_tradeoff.py"

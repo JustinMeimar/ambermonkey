@@ -6,9 +6,17 @@ allow_failure = false
 [analyze]
 coverage = "analyses/parse_coverage.py"
 
-[figures.coverage-table]
+[figures.baseline-function-table]
 analysis = "coverage"
-script = "figures/coverage_table.py"
+script = "figures/baseline_function_table.py"
+
+[figures.baseline-interpreter-table]
+analysis = "coverage"
+script = "figures/baseline_interpreter_table.py"
+
+[figures.ic-table]
+analysis = "coverage"
+script = "figures/ic_table.py"
 
 [variables]
 # Per-iteration scratch dir. AOTCoverage writes one file per firefox

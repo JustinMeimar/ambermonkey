@@ -41,20 +41,36 @@ State.
 
 ## Tables
 
-`figures/coverage_table.py` is registered as the `coverage-table`
-figure. Fossil hands it the cross-variant fold on stdin and it writes
-`figures/coverage-table.json` for the typst `json-table` loader --
-rows are the paper-relevant subset of the reducer's metrics, one
-column per variant, cells pre-formatted as `mean ± stddev`.
+One table per artifact population, all fed from the same `coverage`
+analysis fold. Fossil hands each script the cross-variant fold on
+stdin and the script writes a sibling `.json` for the typst
+`json-table` loader. Metric names are unqualified because the table
+title already carries the artifact context; cells are the mean only
+(variance across iterations is zero to display precision, so `± 0`
+was pure noise).
+
+- `baseline-function-table` — corpus size, installed, utilization,
+  AOT hit rate.
+- `baseline-interpreter-table` — corpus size (always 1, hardcoded in
+  the figure script since AOTCoverage.cpp does not enumerate the
+  interp blob kind) and number of AOT-using processes (`n_procs`).
+  Loaded-in-N-procs is the strongest statement the current plumbing
+  supports.
+- `ic-table` — corpus size, attached, utilization, total attaches,
+  AOT hit rate. Only weighted metrics; the unweighted identity-
+  coverage fraction (`workload.coverage_pct` in the reducer) is
+  still computed but not surfaced because AOT hit rate already
+  answers the "how well does the corpus serve this workload"
+  question and the two numbers together invited misinterpretation.
 
 ### Reading the IC columns
 
-The lookup order in BaselineCacheIRCompiler is atoms zone, then the
-per-zone stub cache, then compile, and the three counters follow it.
-So `zone_cache_hit` is an AOT *miss* that a stub compiled earlier in
-the same zone absorbed. It is not downstream of the image. Only
-`compiled` is fresh work, which is why a workload can show a mediocre
-`aot_hit_pct` and still compile very little.
+An IC attach request resolves in one of three ways -- AOT image, per-
+zone stub cache, or fresh compile. The zone-cache bucket is folded
+silently into the request total; the table reports only the AOT-vs-
+total ratio because the zone bucket kept generating "wait, what is
+that?" questions without carrying its weight. The raw count is still
+in the reducer output for anyone debugging.
 
 `ic_shapes_raced` is the intersection of the served-by-AOT and
 served-elsewhere shape sets unioned across processes, so a shape lands
