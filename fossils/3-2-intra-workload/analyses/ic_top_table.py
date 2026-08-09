@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-"""Top-N IC-attach stubs as a renderable table.
-
-Same aggregation as ic_rank (content+parent merged), but emits a
-column-schema-plus-rows JSON shape suitable for a Typst table
-renderer. Columns: stub id (10-char prefix), invocation count,
-proportion of total attaches, and cumulative CDF over the top-N.
-
-The CDF column will not reach 1.0 when the tail is truncated -- that
-is intentional and is the point of the table.
-"""
+"""Render the top content-process guest IC bodies by stub-entry count."""
 
 import collections
 import json
@@ -19,36 +10,48 @@ TOP_N = 20
 ID_PREFIX = 10
 
 
-def main():
-    obs = json.load(sys.stdin)
-    ob = obs.get("observations", [obs])[0]
-    out = ob.get("stdout")
-    if isinstance(out, list):
-        out = "\n".join(out)
-    reduced = json.loads(out.strip())
-    ic = reduced["ic"]
-    merged = collections.Counter()
-    for proc in ("content", "parent"):
-        merged.update(ic.get(proc, {}))
-    if not merged:
-        print("ic_top_table: FATAL: no IC-attach hashes", file=sys.stderr)
-        sys.exit(1)
+def die(message):
+    print(f"ic_top_table: FATAL: {message}", file=sys.stderr)
+    sys.exit(1)
 
-    total = sum(merged.values())
-    top = merged.most_common(TOP_N)
+
+def main():
+    document = json.load(sys.stdin)
+    attaches = collections.Counter()
+    entered = collections.Counter()
+    for observation in document.get("observations", [document]):
+        output = observation.get("stdout")
+        if isinstance(output, list):
+            output = "\n".join(output)
+        if not isinstance(output, str) or not output.strip():
+            die("observation has no reducer output on stdout")
+        reduced = json.loads(output.strip())
+        content = reduced.get("ic", {}).get("content", {})
+        attaches.update(content.get("attaches", {}))
+        entered.update(content.get("entered", {}))
+
+    if not attaches:
+        die("no guest content-process IC attachments")
+    unattached = set(entered) - set(attaches)
+    if unattached:
+        die("stub-entry counts contain bodies absent from the static inventory")
+    total = sum(entered.values())
+    if total == 0:
+        die("guest IC inventory has zero observed stub entries")
+
     rows = []
     cdf = 0.0
-    for stub_id, count in top:
-        proportion = count / total
-        cdf += proportion
-        rows.append([stub_id[:ID_PREFIX], count, proportion, cdf])
+    for body_id, count in entered.most_common(TOP_N):
+        share = count / total
+        cdf += share
+        rows.append([body_id[:ID_PREFIX], count, share, cdf])
 
     table = {
         "columns": [
-            {"key": "stub",       "label": "Stub",        "align": "left",  "format": "str"},
-            {"key": "count",      "label": "Invocations", "align": "right", "format": "int"},
-            {"key": "proportion", "label": "Share",       "align": "right", "format": "percent"},
-            {"key": "cdf",        "label": "CDF",         "align": "right", "format": "percent"},
+            {"key": "body", "label": "IC body", "align": "left", "format": "str"},
+            {"key": "entries", "label": "Entries", "align": "right", "format": "int"},
+            {"key": "share", "label": "Share", "align": "right", "format": "percent"},
+            {"key": "cdf", "label": "CDF", "align": "right", "format": "percent"},
         ],
         "rows": rows,
     }

@@ -93,6 +93,13 @@ def new_proc_state():
     }
 
 
+def merge_state(destination, source):
+    destination["attaches_ic"].update(source["attaches_ic"])
+    destination["attaches_bl"].update(source["attaches_bl"])
+    destination["entered_ic"].update(source["entered_ic"])
+    destination["flush_count"][0] += source["flush_count"][0]
+
+
 def main(root):
     per_proc = {"content": new_proc_state(), "parent": new_proc_state()}
 
@@ -104,18 +111,25 @@ def main(root):
         if proc not in per_proc:
             continue
         n_files += 1
-        parse(os.path.join(root, fn), per_proc[proc])
+        file_state = new_proc_state()
+        parse(os.path.join(root, fn), file_state)
+        if (proc == "content" and file_state["attaches_ic"]
+                and file_state["flush_count"][0] == 0):
+            die(
+                f"{fn} attached IC stubs but emitted no shutdown entries-flush; "
+                "dynamic counts would omit its live stubs"
+            )
+        merge_state(per_proc[proc], file_state)
 
     if n_files == 0:
         die(f"no content/parent .jsonl files in {root}")
     if not (per_proc["content"]["attaches_ic"]
             or per_proc["parent"]["attaches_ic"]):
         die("no ic-instance-attach events; InstrCh_IC disabled?")
-    if (per_proc["content"]["flush_count"][0] == 0
-            and per_proc["parent"]["flush_count"][0] == 0):
-        die("no entries-flush events; either the Demand channel is off "
-            "(JS_INSTR must include 'demand' or be 'all') or this Firefox "
-            "does not yet have the runtime-shutdown flush patch")
+    if per_proc["content"]["flush_count"][0] == 0:
+        die("no content-process entries-flush events; either the Demand "
+            "channel is off (JS_INSTR must include 'demand' or be 'all') or "
+            "the content process did not complete its shutdown flush")
 
     out = {"ic": {}, "baseline": {}}
     for proc, s in per_proc.items():

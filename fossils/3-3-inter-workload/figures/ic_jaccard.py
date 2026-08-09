@@ -1,16 +1,10 @@
 #!/home/justin/tools/fossil/figures/.venv/bin/python
-"""Split-triangle heatmap: Static Coverage below diagonal, Dynamic
-Coverage above, per-variant executed-body count on the diagonal.
+"""Three-panel heatmap for the alphabetical eight-workload TP6 subset.
 
-Lower triangle (i > j): symmetric static coverage over IC-body sets
-    static[i][j] = |set_i ∩ set_j| / |set_i ∪ set_j|
-    (formerly labelled Jaccard; renamed for symmetry with dynamic).
-Upper triangle (i < j): asymmetric dynamic coverage
-    dynamic[i][j] = sum_{k in freqs[j] and set[i]} freqs[j][k]
-                    / sum_{k in freqs[j]} freqs[j][k]
-    i.e. what fraction of variant j's execution weight lands on
-    bodies that also appear in variant i's set. Diagonal is bold
-    |executed_i|.
+Panel (a) uses the upper triangle for IC-body Jaccard and the lower triangle
+for Baseline-function Jaccard. Panels (b) and (c) are full directional
+matrices: row A is the candidate corpus and column B is the target workload.
+Every panel uses the same blue-to-red scale and every cell is annotated.
 """
 
 import sys
@@ -19,152 +13,262 @@ from decimal import ROUND_DOWN, Decimal
 import matplotlib as mpl
 import matplotlib.pyplot as plt
 import numpy as np
-from matplotlib.colors import Normalize
+from fossil_figures import apply_style, load_stdin
 
-from fossil_figures import apply_style, font_sizes, load_stdin
 
-apply_style(column="single")
-fs = font_sizes()
+apply_style(column="double")
+plt.rcParams["pdf.fonttype"] = 42
+plt.rcParams["ps.fonttype"] = 42
 data = load_stdin()
-columns = data.column_names
-n = len(columns)
-
-if n < 2:
-    print("Need at least 2 variants", file=sys.stderr)
+tp6_subset = (
+    "amazon",
+    "bing-search",
+    "buzzfeed",
+    "cnn",
+    "ebay",
+    "espn",
+    "expedia",
+    "facebook",
+)
+missing = [name for name in tp6_subset if name not in data.columns]
+if missing:
+    print(
+        "artifact-overlap: missing selected TP6 workloads: " + ", ".join(missing),
+        file=sys.stderr,
+    )
     sys.exit(1)
 
+columns = list(tp6_subset)
+n = len(columns)
 
-def _tag(metric, key):
+
+def tag(metric, key):
     if not metric.children or key not in metric.children:
         return ""
     return (metric.children[key].tag or "").strip()
 
 
-def _floor_2(value):
-    """Format a non-negative coverage value by rounding down."""
+def decode_set(metric, key):
+    encoded = tag(metric, key)
+    return set(encoded.split(",")) if encoded else set()
+
+
+def decode_counter(metric, key):
+    encoded = tag(metric, key)
+    values = {}
+    if encoded:
+        for entry in encoded.split(";"):
+            identity, count = entry.rsplit("=", 1)
+            values[identity] = int(count)
+    return values
+
+
+def floor_2(value):
+    """Format a non-negative matrix value without rounding it upward."""
     return format(
         Decimal(str(value)).quantize(Decimal("0.00"), rounding=ROUND_DOWN),
         ".2f",
     )
 
 
-hash_sets, freq_maps = {}, {}
-for col in columns:
-    m = data.columns[col]
-    h = _tag(m, "hashes")
-    hash_sets[col] = set(h.split(",")) if h else set()
-    f = _tag(m, "freqs")
-    d = {}
-    if f:
-        for entry in f.split(";"):
-            k, v = entry.rsplit("=", 1)
-            d[k] = int(v)
-    freq_maps[col] = d
+def text_color(cmap, norm, value):
+    """Choose legible annotation text from the rendered cell luminance."""
+    red, green, blue, _ = cmap(norm(value))
+    luminance = 0.2126 * red + 0.7152 * green + 0.0722 * blue
+    return "white" if luminance < 0.48 else "black"
 
-jaccard = np.zeros((n, n))
-for i in range(n):
-    for j in range(n):
-        si, sj = hash_sets[columns[i]], hash_sets[columns[j]]
-        u = len(si | sj)
-        jaccard[i][j] = len(si & sj) / u if u else 0.0
 
-coverage = np.zeros((n, n))
-for i in range(n):
-    corpus = hash_sets[columns[i]]
-    for j in range(n):
-        tgt = freq_maps[columns[j]]
-        total = sum(tgt.values())
-        if not total:
-            continue
-        coverage[i][j] = sum(v for k, v in tgt.items() if k in corpus) / total
+def jaccard_matrix(sets):
+    matrix = np.zeros((n, n))
+    for i in range(n):
+        for j in range(n):
+            union = sets[i] | sets[j]
+            matrix[i, j] = len(sets[i] & sets[j]) / len(union) if union else 0.0
+    return matrix
 
-universe, all_inter = set(), None
-for s in hash_sets.values():
-    universe |= s
-    all_inter = s if all_inter is None else all_inter & s
-all_inter = all_inter or set()
 
-display = [c.capitalize() for c in columns]
-cell = 0.52
-w = cell * n + 1.6
-h = cell * n + 0.9
+def directional_coverage(source_sets, target_frequencies):
+    matrix = np.zeros((n, n))
+    for i, source in enumerate(source_sets):
+        for j, target in enumerate(target_frequencies):
+            total = sum(target.values())
+            if total:
+                matrix[i, j] = sum(
+                    count for identity, count in target.items() if identity in source
+                ) / total
+    return matrix
 
-cmap_j = plt.get_cmap("Blues")
-cmap_c = plt.get_cmap("OrRd")
-jac_off = jaccard[np.tril_indices(n, k=-1)]
-cov_off = coverage[np.triu_indices(n, k=1)]
-jac_lo = float(jac_off.min()) - 0.05 if jac_off.size else 0.0
-jac_hi = float(jac_off.max()) + 0.05 if jac_off.size else 1.0
-cov_lo = max(float(cov_off.min()) - 0.05, 0.0) if cov_off.size else 0.0
-cov_hi = min(float(cov_off.max()) + 0.02, 1.0) if cov_off.size else 1.0
-norm_j = Normalize(vmin=jac_lo, vmax=jac_hi)
-norm_c = Normalize(vmin=cov_lo, vmax=cov_hi)
 
-fig, ax = plt.subplots(figsize=(w, h))
-ax.grid(False)
-ax.set_axisbelow(False)
-ax.imshow(np.full((n, n), np.nan), aspect="equal", cmap="Blues", vmin=0, vmax=1)
+metrics = [data.columns[column] for column in columns]
+ic_sets = [decode_set(metric, "ic_hashes") for metric in metrics]
+ic_frequencies = [decode_counter(metric, "ic_freqs") for metric in metrics]
+baseline_sets = [decode_set(metric, "baseline_hashes") for metric in metrics]
+baseline_frequencies = [decode_counter(metric, "baseline_freqs") for metric in metrics]
 
-for i in range(n):
-    for j in range(n):
-        if i == j:
-            ax.add_patch(plt.Rectangle(
-                (j - 0.5, i - 0.5), 1, 1,
-                facecolor="#e8e8e8", edgecolor="white", linewidth=1.5,
-            ))
-            ax.text(j, i, f"{len(hash_sets[columns[i]])}",
-                    ha="center", va="center", fontweight="bold",
-                    fontsize=fs["cell_bold"], color="#333333")
-        elif i > j:
-            v = jaccard[i][j]
-            ax.add_patch(plt.Rectangle(
-                (j - 0.5, i - 0.5), 1, 1,
-                facecolor=cmap_j(norm_j(v)), edgecolor="white", linewidth=1.5,
-            ))
-            color = "white" if norm_j(v) > 0.6 else "black"
-            ax.text(j, i, _floor_2(v),
-                    ha="center", va="center", fontsize=fs["cell"], color=color)
-        else:
-            v = coverage[i][j]
-            ax.add_patch(plt.Rectangle(
-                (j - 0.5, i - 0.5), 1, 1,
-                facecolor=cmap_c(norm_c(v)), edgecolor="white", linewidth=1.5,
-            ))
-            color = "white" if norm_c(v) > 0.6 else "black"
-            ax.text(j, i, _floor_2(v),
-                    ha="center", va="center", fontsize=fs["cell"], color=color)
+for column, ic_set, ic_freqs, baseline_set, baseline_freqs in zip(
+    columns, ic_sets, ic_frequencies, baseline_sets, baseline_frequencies
+):
+    if not ic_set or not ic_freqs or not baseline_set or not baseline_freqs:
+        print(f"artifact-overlap: incomplete metrics for {column}", file=sys.stderr)
+        sys.exit(1)
 
-ax.set_xlim(-0.5, n - 0.5)
-ax.set_ylim(n - 0.5, -0.5)
-ax.set_xticks(range(n))
-ax.set_xticklabels(display, rotation=30, ha="right")
-ax.set_yticks(range(n))
-ax.set_yticklabels(display)
-ax.tick_params(length=0)
-for spine in ax.spines.values():
-    spine.set_visible(False)
+ic_jaccard = jaccard_matrix(ic_sets)
+baseline_jaccard = jaccard_matrix(baseline_sets)
+baseline_coverage = directional_coverage(baseline_sets, baseline_frequencies)
+ic_coverage = directional_coverage(ic_sets, ic_frequencies)
 
-fig.subplots_adjust(right=0.82)
-bbox = ax.get_position()
-gap = 0.03
-bar_w = 0.02
-bar_h = (bbox.height - gap) / 2
-x0 = bbox.x1 + 0.04
-
-cax_j = fig.add_axes([x0, bbox.y0 + bar_h + gap, bar_w, bar_h])
-cbar_j = fig.colorbar(mpl.cm.ScalarMappable(cmap=cmap_j, norm=norm_j), cax=cax_j)
-cbar_j.set_label("Static Coverage", fontsize=fs["tick"])
-cbar_j.ax.tick_params(labelsize=fs["tick"])
-
-cax_c = fig.add_axes([x0, bbox.y0, bar_w, bar_h])
-cbar_c = fig.colorbar(mpl.cm.ScalarMappable(cmap=cmap_c, norm=norm_c), cax=cax_c)
-cbar_c.set_label("Dynamic Coverage", fontsize=fs["tick"])
-cbar_c.ax.tick_params(labelsize=fs["tick"])
-
-ax.set_title(
-    f"Static (◣) / Dynamic (◥) Coverage"
-    f"    |U|={len(universe)}  |$\\bigcap$|={len(all_inter)}",
-    pad=10,
+# One fixed blue-to-red scale makes overlap and coverage directly comparable
+# across both artifact families and all three panels. Coverage is a bounded
+# proportion, so a symmetric logit transform expands both tails without
+# collapsing the broad middle into an ad hoc neutral band.
+cmap = mpl.colormaps["RdBu_r"].copy()
+scale_epsilon = 0.01
+scale_ticks = np.array(
+    [0.00, 0.02, 0.05, 0.10, 0.25, 0.50, 0.75, 0.90, 0.95, 0.98, 1.00]
 )
 
-fig.savefig(sys.argv[1])
+
+def scale_forward(values):
+    clipped = np.clip(np.asarray(values), scale_epsilon, 1.0 - scale_epsilon)
+    logits = np.log(clipped / (1.0 - clipped))
+    lower = np.log(scale_epsilon / (1.0 - scale_epsilon))
+    upper = -lower
+    return (logits - lower) / (upper - lower)
+
+
+def scale_inverse(positions):
+    lower = np.log(scale_epsilon / (1.0 - scale_epsilon))
+    upper = -lower
+    logits = lower + np.asarray(positions) * (upper - lower)
+    return 1.0 / (1.0 + np.exp(-logits))
+
+
+norm = mpl.colors.FuncNorm(
+    (scale_forward, scale_inverse),
+    vmin=0.0,
+    vmax=1.0,
+)
+
+static_baseline = np.full((n, n), np.nan)
+static_ic = np.full((n, n), np.nan)
+for i in range(n):
+    for j in range(n):
+        if i > j:
+            static_baseline[i, j] = baseline_jaccard[i, j]
+        elif i < j:
+            static_ic[i, j] = ic_jaccard[i, j]
+
+display = [name.replace("google-", "g-") for name in columns]
+fig, axes = plt.subplots(1, 3, figsize=(7.0, 3.35))
+titles = (
+    "(a) Static intersection\nBaseline ◣  /  IC ◥",
+    "(b) Baseline\ncompile-request coverage",
+    "(c) Inline-cache\nstub-entry coverage",
+)
+
+for index, (axis, title) in enumerate(zip(axes, titles)):
+    if index == 0:
+        axis.imshow(
+            static_baseline,
+            cmap=cmap,
+            norm=norm,
+            interpolation="nearest",
+            aspect="equal",
+        )
+        axis.imshow(
+            static_ic,
+            cmap=cmap,
+            norm=norm,
+            interpolation="nearest",
+            aspect="equal",
+        )
+    else:
+        matrix = baseline_coverage if index == 1 else ic_coverage
+        axis.imshow(
+            matrix, cmap=cmap, norm=norm, interpolation="nearest", aspect="equal"
+        )
+
+    # White borders keep the values easy to follow across a dense matrix.
+    axis.set_xticks(np.arange(-0.5, n, 1), minor=True)
+    axis.set_yticks(np.arange(-0.5, n, 1), minor=True)
+    axis.grid(which="minor", color="white", linewidth=0.6)
+    axis.tick_params(which="minor", bottom=False, left=False)
+    axis.grid(False, which="major")
+    axis.set_title(title, fontsize=7.4, pad=5)
+    axis.set_xlim(-0.5, n - 0.5)
+    axis.set_ylim(n - 0.5, -0.5)
+    axis.set_xticks(range(n))
+    axis.set_xticklabels(
+        display,
+        rotation=55,
+        rotation_mode="anchor",
+        ha="right",
+        va="top",
+        fontsize=5.0,
+    )
+    axis.tick_params(axis="x", length=0, pad=1)
+    if index == 0:
+        axis.set_yticks(range(n))
+        axis.set_yticklabels(display, fontsize=5.0)
+        axis.tick_params(axis="y", length=0, pad=1)
+    else:
+        axis.set_yticks([])
+    for spine in axis.spines.values():
+        spine.set_visible(False)
+
+    for i in range(n):
+        for j in range(n):
+            if i == j:
+                value = 1.0
+                axis.add_patch(
+                    plt.Rectangle(
+                        (j - 0.5, i - 0.5),
+                        1,
+                        1,
+                        facecolor=cmap(norm(value)),
+                        edgecolor="white",
+                        linewidth=0.6,
+                    )
+                )
+                color = text_color(cmap, norm, value)
+                weight = "bold"
+            elif index == 0:
+                value = baseline_jaccard[i, j] if i > j else ic_jaccard[i, j]
+                color = text_color(cmap, norm, value)
+                weight = "normal"
+            else:
+                matrix = baseline_coverage if index == 1 else ic_coverage
+                value = matrix[i, j]
+                color = text_color(cmap, norm, value)
+                weight = "normal"
+            axis.text(
+                j,
+                i,
+                floor_2(value),
+                ha="center",
+                va="center",
+                fontsize=4.0,
+                fontweight=weight,
+                color=color,
+            )
+
+axes[0].set_xlabel("Workload", fontsize=6.3, labelpad=3)
+axes[0].set_ylabel("Workload", fontsize=6.3, labelpad=3)
+axes[1].set_xlabel("Target workload", fontsize=6.3, labelpad=3)
+axes[2].set_xlabel("Target workload", fontsize=6.3, labelpad=3)
+axes[1].set_ylabel("Corpus workload", fontsize=6.3, labelpad=3)
+axes[2].set_ylabel("Corpus workload", fontsize=6.3, labelpad=3)
+
+fig.subplots_adjust(left=0.105, right=0.935, bottom=0.30, top=0.89, wspace=0.25)
+color_axis = fig.add_axes([0.950, 0.30, 0.012, 0.57])
+colorbar = fig.colorbar(
+    mpl.cm.ScalarMappable(norm=norm, cmap=cmap), cax=color_axis
+)
+colorbar.set_ticks(scale_ticks)
+colorbar.set_ticklabels(
+    ["0", ".02", ".05", ".1", ".25", ".5", ".75", ".9", ".95", ".98", "1"]
+)
+colorbar.ax.tick_params(labelsize=5.0, length=2)
+colorbar.set_label("Overlap or coverage", fontsize=6.3)
+
+fig.savefig(sys.argv[1], dpi=300)

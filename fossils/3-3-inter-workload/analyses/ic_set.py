@@ -1,70 +1,107 @@
 #!/usr/bin/env python3
-"""Extract the content-process IC-body identity set and its
-execution-weighted frequency map for one variant.
+"""Pool content-process Baseline and IC demand across repetitions.
 
-Content-only: parent-process ICs (browser chrome / frame scripts /
-telemetry) load identically in every session and are a ~700-body
-floor that swamps site-JS overlap.
+The static sets contain every artifact identity requested by a workload:
+successful Baseline compilations for functions and IC attachments for stub
+bodies. Baseline frequency counts compilation requests, the event an AOT
+Baseline function can satisfy. IC frequency counts post-attachment stub-body
+entries, the execution displaced by an AOT body.
 
-Executed-only: static set = bodies with entered_count > 0. A body
-that attached during setup but never re-executed is off-story here;
-including it inflates the static set (many one-shot attaches on a
-short browsertime page load) and lets an attach-vs-execute mismatch
-generate spurious static/dynamic paradoxes. This filter puts both
-triangles over the same population so Jaccard and coverage are
-directly comparable.
-
-Frequency source: summed enteredCount from the shutdown entries-flush
-(still-live stubs) plus ic-instance-detach entered_count (churned
-stubs). The two populations are disjoint so summing is exact.
-
-Output shape (string-valued so fossil_figures loads as Metric.tag):
-    {
-      "hashes": "HEX,HEX,...",              # executed bodies (static)
-      "freqs":  "HEX=n;HEX=n;...",          # exec-weighted (dynamic)
-      "count":  <int>,
-      "total_entered": <int>
-    }
+Each observation runs three fresh Raptor browser cycles into one instrumentation
+directory. The reducer therefore supplies their pooled identity sets and
+frequency maps in one JSON payload. Supporting a complete results record here
+also keeps the analyzer convenient for direct validation outside Fossil.
 """
 
+import collections
 import json
 import sys
 
 
+def die(message):
+    print(f"artifact-sets: FATAL: {message}", file=sys.stderr)
+    sys.exit(1)
+
+
+def observation_output(observation):
+    if int(observation.get("exit_code", 1)) != 0:
+        die(
+            f"iteration {observation.get('iteration', '?')} exited with "
+            f"status {observation.get('exit_code')}"
+        )
+
+    output = observation.get("stdout")
+    if isinstance(output, list):
+        output = "\n".join(output)
+    if not isinstance(output, str) or not output.strip():
+        die(f"iteration {observation.get('iteration', '?')} has no JSON output")
+
+    try:
+        return json.loads(output.strip())
+    except json.JSONDecodeError as error:
+        die(f"iteration {observation.get('iteration', '?')} emitted invalid JSON: {error}")
+
+
+def counter_at(payload, kind, metric):
+    values = (((payload.get(kind) or {}).get("content") or {}).get(metric) or {})
+    try:
+        return collections.Counter({key: int(value) for key, value in values.items()})
+    except (TypeError, ValueError) as error:
+        die(f"invalid {kind}.content.{metric} counter: {error}")
+
+
+def encode_set(values):
+    return ",".join(sorted(values))
+
+
+def encode_counter(values):
+    return ";".join(
+        f"{key}={value}"
+        for key, value in sorted(values.items(), key=lambda item: (-item[1], item[0]))
+    )
+
+
 def main():
-    obs = json.load(sys.stdin)
-    ob = obs.get("observations", [obs])[0]
-    out = ob.get("stdout")
-    if isinstance(out, list):
-        out = "\n".join(out)
-    reduced = json.loads(out.strip())
-    ic_content = ((reduced.get("ic") or {}).get("content") or {})
-    attaches = ic_content.get("attaches") or {}
-    entered = ic_content.get("entered") or {}
+    record = json.load(sys.stdin)
+    observations = record.get("observations") or [record]
 
-    if not attaches:
-        print("ic_set: FATAL: no content-process IC-attach events",
-              file=sys.stderr)
-        sys.exit(1)
-    if not entered:
-        print("ic_set: FATAL: no content-process entered_count; "
-              "shutdown flush + detach fold both empty",
-              file=sys.stderr)
-        sys.exit(1)
+    ic_requests = collections.Counter()
+    ic_entries = collections.Counter()
+    baseline_requests = collections.Counter()
 
-    executed = {h: n for h, n in entered.items() if n > 0}
-    hashes = sorted(executed.keys())
+    for observation in observations:
+        payload = observation_output(observation)
+        ic_requests.update(counter_at(payload, "ic", "attaches"))
+        ic_entries.update(counter_at(payload, "ic", "entered"))
+        baseline_requests.update(counter_at(payload, "baseline", "attaches"))
 
-    hashes_csv = ",".join(hashes)
-    freqs_str = ";".join(f"{k}={v}" for k, v in sorted(executed.items(),
-                                                       key=lambda kv: -kv[1]))
-    total = sum(executed.values())
-    json.dump({
-        "hashes": hashes_csv,
-        "freqs":  freqs_str,
-        "count":  len(hashes),
-        "total_entered": total,
-    }, sys.stdout)
+    if not ic_requests:
+        die("no content-process IC attachment identities")
+    if not ic_entries:
+        die("no content-process IC entry counts")
+    if not baseline_requests:
+        die("no content-process Baseline compilation identities")
+
+    missing_ic_bodies = set(ic_entries) - set(ic_requests)
+    if missing_ic_bodies:
+        die(
+            f"{len(missing_ic_bodies)} entered IC bodies have no corresponding "
+            "attachment event"
+        )
+
+    json.dump(
+        {
+            "ic_hashes": encode_set(ic_requests),
+            "ic_freqs": encode_counter(ic_entries),
+            "baseline_hashes": encode_set(baseline_requests),
+            "baseline_freqs": encode_counter(baseline_requests),
+            "ic_count": len(ic_requests),
+            "ic_entries": sum(ic_entries.values()),
+            "baseline_count": len(baseline_requests),
+            "baseline_requests": sum(baseline_requests.values()),
+        },
+        sys.stdout,
+    )
     sys.stdout.write("\n")
 
 
