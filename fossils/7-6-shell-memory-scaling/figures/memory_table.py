@@ -53,12 +53,18 @@ def main():
     if not Ns:
         raise SystemExit("memory_table: no complete stock+aot pairs")
 
+    def reduction(stock, aot):
+        return 1.0 - aot / stock if stock > 0 else 0.0
+
     rows = []
     for n in Ns:
         stock = by_n[n]["stock"]
         aot = by_n[n]["aot"]
-        reduction = 1.0 - aot["anon"] / stock["anon"] if stock["anon"] > 0 else 0.0
-        rows.append([str(n), stock["rss"], aot["rss"], stock["anon"], aot["anon"], reduction])
+        rows.append([
+            str(n),
+            stock["rss"], aot["rss"], reduction(stock["rss"], aot["rss"]),
+            stock["anon"], aot["anon"], reduction(stock["anon"], aot["anon"]),
+        ])
 
     Ns_fit = [n for n in Ns if n > 1]
     if len(Ns_fit) >= 2:
@@ -66,8 +72,11 @@ def main():
         s_rss_aot   = slope([(n, by_n[n]["aot"]["rss"])   for n in Ns_fit])
         s_ae_stock  = slope([(n, by_n[n]["stock"]["anon"]) for n in Ns_fit])
         s_ae_aot    = slope([(n, by_n[n]["aot"]["anon"])   for n in Ns_fit])
-        ae_slope_red = 1.0 - s_ae_aot / s_ae_stock if s_ae_stock > 0 else 0.0
-        rows.append(["slope-mb-per-N", s_rss_stock, s_rss_aot, s_ae_stock, s_ae_aot, ae_slope_red])
+        rows.append([
+            "slope-mb-per-N",
+            s_rss_stock, s_rss_aot, reduction(s_rss_stock, s_rss_aot),
+            s_ae_stock, s_ae_aot, reduction(s_ae_stock, s_ae_aot),
+        ])
 
     write_typst_table(
         Path(sys.argv[1]).with_suffix(".json"),
@@ -75,6 +84,7 @@ def main():
             {"key": "workers",             "label": "N",              "align": "right", "format": "str"},
             {"key": "stock_rss_mb",        "label": "stock RSS",      "align": "right", "format": "float"},
             {"key": "aot_rss_mb",          "label": "aot RSS",        "align": "right", "format": "float"},
+            {"key": "rss_reduction",       "label": "RSS Δ",          "align": "right", "format": "percent"},
             {"key": "stock_anon_exec_mb",  "label": "stock anon-exec", "align": "right", "format": "float"},
             {"key": "aot_anon_exec_mb",    "label": "aot anon-exec",   "align": "right", "format": "float"},
             {"key": "anon_exec_reduction", "label": "anon-exec Δ",     "align": "right", "format": "percent"},

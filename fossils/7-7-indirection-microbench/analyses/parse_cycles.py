@@ -10,7 +10,7 @@ from benchmarks import manifest
 PREFIX = "parse_cycles"
 
 VARIANTS = {"head", "no-opts"}
-ITER_COUNT = 500_000_000
+ITER_COUNT = 10_000_000_000
 REQUIRED_EVENTS = ("cycles:u", "instructions:u", "ref-cycles:u")
 MIN_RUNNING = 99.5
 
