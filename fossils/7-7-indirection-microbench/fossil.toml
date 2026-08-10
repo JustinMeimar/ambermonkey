@@ -1,0 +1,24 @@
+name = "7-7-indirection-microbench"
+description = "Per-iteration user-mode cycle cost of a jsshell hot loop, ablated across two AOT builds: HEAD (perf 1/n, 3/n, 5/n, 6/n applied) vs NO_OPTS (those four commits reverted). Delta between cells is the marginal cost of value-mirror, ABI-reloc, and callVM-oneload opts on this workload. First pass measures a single op (interrupt_check); sibling ops land as additional microbench files without changing the plumbing."
+default_iterations = 30
+allow_failure = false
+
+[analyze]
+cycles = "analyses/parse_cycles.py"
+
+[figures.cycles-bars]
+analysis = "cycles"
+script = "figures/cycles_bars.py"
+
+[variables]
+JSSHELL_HEAD   = "@FIREFOX/build-shell-release-aot/dist/bin/js"
+JSSHELL_NOOPTS = "@FIREFOX/build-shell-release-aot-noopts/dist/bin/js"
+BENCH_JS       = "/home/justin/spidermonkey/ambermonkey/fossils/7-7-indirection-microbench/microbenches/interrupt_check.js"
+FLAGS          = "--aot --blinterp-eager --no-baseline"
+INIT           = "T=$(mktemp /tmp/amber-7-7.XXXXXX.json)"
+RUN            = "perf stat --output=$T -j -e cycles:u,instructions:u,ref-cycles:u"
+EMIT           = "cat $T; rm -f $T"
+
+[variants]
+head    = "$INIT; $RUN $JSSHELL_HEAD   $FLAGS -f $BENCH_JS 1>&2; $EMIT"
+no-opts = "$INIT; $RUN $JSSHELL_NOOPTS $FLAGS -f $BENCH_JS 1>&2; $EMIT"

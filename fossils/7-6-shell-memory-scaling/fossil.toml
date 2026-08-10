@@ -1,0 +1,35 @@
+name = "7-6-shell-memory-scaling"
+description = "Per-runtime private JIT memory scaling of the JS shell with N in-process worker threads: stock baseline vs AmberMonkey. Every stock JSRuntime allocates its own baseline interpreter and IC pool; AmberMonkey maps the shared .text.aot image once per process, so per-runtime private code stays near-flat as N grows."
+default_iterations = 3
+allow_failure = false
+
+[analyze]
+rss = "analyses/parse_rss.py"
+
+[figures.rss-scaling]
+analysis = "rss"
+script = "figures/rss_scaling.py"
+
+[figures.memory-table]
+analysis = "rss"
+script = "figures/memory_table.py"
+
+[variables]
+BENCH = "@TESTS_DIR/worker_realistic.js"
+STOCK = "--no-ion"
+AOT   = "--aot --aot-only --no-ion"
+TIME  = "python3 /home/justin/spidermonkey/ambermonkey/fossils/7-6-shell-memory-scaling/scripts/measure_peak_rss.py"
+
+[variants]
+n1       = "$TIME @JSSHELL_AOT $STOCK -f $BENCH -- 1"
+n1-aot   = "$TIME @JSSHELL_AOT $AOT   -f $BENCH -- 1"
+n4       = "$TIME @JSSHELL_AOT $STOCK -f $BENCH -- 4"
+n4-aot   = "$TIME @JSSHELL_AOT $AOT   -f $BENCH -- 4"
+n16      = "$TIME @JSSHELL_AOT $STOCK -f $BENCH -- 16"
+n16-aot  = "$TIME @JSSHELL_AOT $AOT   -f $BENCH -- 16"
+n64      = "$TIME @JSSHELL_AOT $STOCK -f $BENCH -- 64"
+n64-aot  = "$TIME @JSSHELL_AOT $AOT   -f $BENCH -- 64"
+n128     = "$TIME @JSSHELL_AOT $STOCK -f $BENCH -- 128"
+n128-aot = "$TIME @JSSHELL_AOT $AOT   -f $BENCH -- 128"
+n256     = "$TIME @JSSHELL_AOT $STOCK -f $BENCH -- 256"
+n256-aot = "$TIME @JSSHELL_AOT $AOT   -f $BENCH -- 256"

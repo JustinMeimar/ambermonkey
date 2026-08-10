@@ -1,0 +1,21 @@
+name = "7-5-cross-process-memory"
+description = "Browser-tree RSS-sum vs PSS-sum on AWSY tp6, stock vs AmberMonkey. PSS is required to observe CoW sharing of the .text.aot baseline blob across content processes; RSS overcounts shared pages."
+default_iterations = 3
+allow_failure = true
+
+[analyze]
+memory = "analyses/tree_memory.py"
+
+[figures.tree-memory-bars]
+analysis = "memory"
+script = "figures/tree_memory_bars.py"
+
+[variables]
+SAMPLER = "python3 /home/justin/spidermonkey/ambermonkey/fossils/7-5-cross-process-memory/scripts/smaps_sampler.py"
+INIT    = "S=$(mktemp /tmp/amber-7-5.XXXXXX.jsonl)"
+EMIT    = "kill $SAMPLER_PID 2>/dev/null; wait $SAMPLER_PID 2>/dev/null; jq -s '{samples: .}' $S; rm -f $S"
+AWSY    = "./mach awsy-test --iterations 1"
+
+[variants]
+stock = "$INIT; $SAMPLER @FIREFOX/build-browser-release/dist/bin 0.5 >$S & SAMPLER_PID=$!; cd @FIREFOX && @SANDBOX @MC_BROWSER $AWSY --binary @BIN_RELEASE 1>&2; $EMIT"
+aot   = "$INIT; $SAMPLER @FIREFOX/build-browser-release-aot/dist/bin 0.5 >$S & SAMPLER_PID=$!; cd @FIREFOX && @SANDBOX @MC_AOT $AWSY --binary @BIN_AOT 1>&2; $EMIT"
