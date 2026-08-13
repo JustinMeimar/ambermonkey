@@ -1,93 +1,122 @@
-# 7-5 cross-process memory
+# 7-5 per-process memory on Octane sub-benchmarks
 
 ## What this measures
 
-Browser-tree resident memory at synchronised points during an AWSY tp6
-run, quoted two ways:
+Peak per-process resident memory of the JS shell (N=1) running each
+Octane sub-benchmark to completion, in five configurations:
 
-- **RSS-sum**: naive sum of Rss across every firefox / plugin-container
-  process in the tree. Overcounts pages that are shared via CoW because
-  every process reports them at full weight.
-- **PSS-sum**: sum of Pss across the same set. Shared pages are
-  divided by the number of processes mapping them, so this is the true
-  memory the tree costs the OS.
+- `interp`   : `--no-jit-backend`   interpreter only, no JIT of any kind
+- `baseline` : `--no-ion`           runtime Baseline codegen and runtime ICs, no Ion
+- `stock`    : (no policy flags)    default: Baseline codegen, IC codegen, Ion
+- `aot`      : `--aot`              AmberMonkey opportunistic, runtime tiering left on
+- `aot-only` : `--aot --aot-only`   AmberMonkey strict: image only, misses interpret; the shell option sets useAOTImage=true and ion=false internally, so Ion is off in this configuration
 
-Two variants: stock browser vs AmberMonkey. We compare peak,
-time-averaged, and median of RSS-sum and PSS-sum across the run.
+Two metrics captured by the same wrapper:
 
-## Why PSS matters for AmberMonkey
+- **peak RSS**: `getrusage(RUSAGE_CHILDREN).ru_maxrss`. Full resident set,
+  includes file-backed pages (libxul .text, .text.aot image, mapped .rodata).
+- **peak private-anonymous RSS**: sum of `Rss` across VMAs in
+  `/proc/<pid>/smaps` whose pathname is empty. Anonymous mmaps are where
+  SpiderMonkey's heap arenas, GC nursery, stacks, and
+  `ExecutableAllocator` JIT pools land, so this is the private per-process
+  allocation cost -- the quantity that CoW sharing of the .text.aot image
+  does not touch and cannot amortize.
 
-The AOT baseline interpreter blob is emitted into a `.text.aot`
-section (see `js/src/jit/aot/AOTImageIncbin.cpp`), so it ships inside
-the firefox binary as file-backed `PROT_EXEC` pages. At runtime
-`InstallAOTBaselineInterpreter` wraps the region with
-`JitCode::NewStatic()`, which bypasses `ExecutableAllocator` and never
-memcpy's the blob into anonymous exec memory. The kernel can therefore
-CoW-share the whole ~52 KB per-runtime block across every content
-process that maps it.
+A companion `peak_anon_exec_kb` (anon-and-executable) isolates the JIT
+slice for cross-reference against 7-6.
 
-- Under RSS the sharing win is invisible: every process bills the full
-  52 KB.
-- Under PSS the win shows up directly: 52 KB total across N processes
-  instead of 52 KB * N.
+## Why the shape is (bench x config)
 
-Patched sites (profiler enter/exit toggle, code coverage counters)
-break CoW on the pages they touch, so the measurement is only clean
-when profiler and coverage instrumentation are off. Both are off in
-the release/aot browser mozconfigs we use here.
+- Fossil 7-6 varies the number of in-process worker JSRuntimes for one
+  synthetic workload; its story is per-runtime scaling.
+- 7-5 varies the workload across a widely-known suite at N=1; its story
+  is that the per-process JIT footprint AmberMonkey displaces is
+  consistent across real workloads, not an artifact of one microbench.
+
+Together they support two independent CGO claims: (i) per-process, AOT
+replaces the dynamically generated Baseline+IC code with a shared
+file-backed image (7-5), and (ii) that displacement compounds linearly
+across worker runtimes (7-6).
+
+## Configurations, precisely
+
+| kind     | flags               | Baseline codegen | IC codegen | Ion   | .text.aot consulted |
+|----------|---------------------|------------------|------------|-------|---------------------|
+| interp   | `--no-jit-backend`  | no               | no         | no    | no                  |
+| baseline | `--no-ion`          | yes (runtime)    | yes        | no    | no                  |
+| stock    | (default)           | yes              | yes        | yes   | no                  |
+| aot      | `--aot`             | opportunistic    | yes        | yes   | yes                 |
+| aot-only | `--aot --aot-only`  | AOT only (misses interpret) | AOT only (misses interpret) | no (option forces ion=false) | yes |
+
+The three reduction pairs the paper reports:
+
+- (stock, aot): drop-in delta a stock browser sees when `--aot` is
+  flipped on. Ion on in both.
+- (stock, aot-only): strict-AOT delta. Ion is on in stock and off
+  in aot-only (the option forces ion=false), so this pair jointly
+  isolates the effect of forbidding runtime Baseline codegen,
+  runtime IC codegen, and Ion.
+- (baseline, aot-only): the symmetric AOT-vs-runtime-baseline pair.
+  Ion is off in both configurations (baseline via `--no-ion`,
+  aot-only via `--aot-only` forcing ion=false internally), so the
+  delta attributes to AOT replacing runtime Baseline+IC codegen
+  while everything Ion-related is held out symmetrically.
+
+## Metrics reported
+
+Per (bench, config, iteration):
+- `peak_rss_kb`, `peak_rss_mb`
+- `peak_anon_kb`, `peak_anon_mb`
+- `peak_anon_exec_kb`, `peak_anon_exec_mb`
+
+Three JSON tables emitted at figure time:
+- `memory-table.json`           full RSS
+- `memory-table-anon.json`      private-anonymous RSS (primary paper table)
+- `memory-table-anon-exec.json` JIT slice for cross-reference against 7-6
+
+Each table has rows = benchmarks (Octane order) plus a `geomean` row;
+columns = interp | baseline | stock | aot | (aot vs baseline) |
+(aot vs stock). The paired bar chart figure (`anon-exec-bars.pdf`
+plus companion `anon-bars.pdf`) presents the same data sorted by the
+`baseline` column descending so the largest per-process JIT pools
+appear first.
 
 ## What this deliberately does not do
 
-- **No engine instrumentation.** No `JS_INSTR`, no JSONL streams, no
-  per-artifact attribution. See `3-1-jit-memory` for the version that
-  tried to attribute per-tier resident bytes and became unwieldy.
-- **No AWSY checkpoint alignment.** The sampler runs at a fixed 0.5 s
-  cadence for the whole run. Peak / mean / median across the whole
-  trace is the reported quantity. Adding checkpoint-anchored numbers
-  is a later refinement if it turns out to matter.
-- **No cross-run correlation of pids.** Every iteration gets a fresh
-  process tree; we do not try to match "this pid was the compositor in
-  run 1 and in run 2".
-
-## Reading the output
-
-`analyses/tree_memory.py` emits per-iteration:
-
-- `rss_sum_peak_mb`, `pss_sum_peak_mb`: max over sample times of the
-  per-time sum across the tree.
-- `rss_sum_mean_mb`, `pss_sum_mean_mb`: mean over sample times of the
-  per-time sum.
-- `pss_over_rss`: ratio of mean PSS-sum to mean RSS-sum; how much of
-  the naive resident footprint is actually shared.
-- `sample_count`: number of 0.5 s samples that produced at least one
-  firefox process.
-- `peak_process_count`: max number of firefox / plugin-container
-  processes seen at any one sample.
-
-`figures/tree_memory_bars.py` produces a grouped bar chart: for each
-variant, one bar for mean RSS-sum and one for mean PSS-sum with error
-bars propagated from the per-iteration stddev.
-
-## The shared-blob size scalar
-
-The `.text.aot` section is folded into `.text` at link time, but the
-`aot_image_start` and `aot_image_end` symbols bracket the image and
-survive stripping-free. `scripts/aot_image_size.sh` prints the size
-in bytes:
-
-    scripts/aot_image_size.sh
-    scripts/aot_image_size.sh path/to/other/libxul.so
-
-This is the amount of executable memory that becomes CoW-shareable
-across every AOT-using content process. Cite it as a scalar
-(`constants.typ`) rather than measuring it at run time.
+- No engine instrumentation. No JSONL streams, no per-artifact
+  attribution.
+- No process-tree sampling. N=1, one shell process per run; the
+  browser process-tree measurement lived here previously and has been
+  removed. If we later need CoW-across-processes numbers, add a
+  separate fossil rather than overloading this one.
+- No warmup runs. Octane runners self-warm internally.
 
 ## Invariants the analysis enforces
 
-- Variant name is `stock` or `aot` (validates against `command` in
-  manifest).
-- `command` contains `./mach awsy-test`.
-- `command` mentions the correct binary path
-  (`build-browser-release/dist/bin/firefox` for stock,
-  `build-browser-release-aot/dist/bin/firefox` for aot).
-- Samples file is non-empty and every line parses as JSON.
+- Variant name matches `<bench>-<config>` with `bench` in the Octane 15
+  and `config` in {interp, baseline, stock, aot, aot-only}.
+- Whole-token flag contract per config: interp requires
+  `--no-jit-backend` and forbids AOT flags; baseline requires
+  `--no-ion` and forbids `--aot`, `--aot-only`, `--no-jit-backend`;
+  stock forbids all four policy flags; aot requires `--aot` and forbids
+  `--aot-only`, `--no-ion`, `--no-jit-backend`; aot-only requires both
+  `--aot` and `--aot-only` and forbids `--no-ion`, `--no-jit-backend`.
+- Wrapper emitted `peak_rss_kb`, `peak_anon_kb`, `peak_anon_exec_kb`
+  on stderr; missing any invalidates the observation.
+
+## Known constraints
+
+- Peak-RSS from `ru_maxrss` is the child's high-water mark for the
+  whole run. Anon-exec peaks may lag past code-cache resets; not an
+  issue at Octane's typical few-second runs.
+- `.text.aot` inclusion in RSS is workload-invariant (all `aot`
+  variants map the same image); comparisons across benchmarks are
+  informative, comparisons of RSS-delta against `stock` are not
+  confounded by it.
+
+## Related quantities
+
+- `.text.aot` size (the amortized shared cost) is a build-time
+  scalar. See `scripts/aot_image_size.sh`.
+- `7-6-shell-memory-scaling` is the N-runtimes scaling counterpart on
+  one synthetic workload.

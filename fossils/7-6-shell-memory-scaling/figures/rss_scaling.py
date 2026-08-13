@@ -1,14 +1,15 @@
 #!/home/justin/tools/fossil/figures/.venv/bin/python
-"""Shell memory scaling with worker count. Four lines:
+"""Shell memory scaling with worker count.
 
-- solid: total peak RSS (whole shell process).
-- dashed: peak anonymous-executable residency (SpiderMonkey's JIT
-  pools -- baseline interpreter, compiled baseline, IC stubs).
+Four variants: baseline-only stock (--no-ion), full-tier stock (default),
+AmberMonkey restricted (--aot --aot-only --no-ion), AmberMonkey full-tier
+(--aot). Solid lines are peak anonymous-executable residency (the
+JIT-attributable slice, isolated from the file-backed .text.aot section);
+dashed lines are peak total RSS.
 
-Total RSS is dominated by non-JIT per-worker overhead (GC heap, stacks,
-self-hosted data) that is identical under stock and aot. Anonymous exec
-isolates the code that AOT actually eliminates. Log-scale y accommodates
-both series in one axis."""
+Two natural pairs read from the figure: (stock-base, aot-restricted) for
+the restricted-execution deployment, and (stock-full, aot-full) for
+opportunistic sharing when runtime tiering is left enabled."""
 
 import re
 import sys
@@ -18,13 +19,17 @@ import matplotlib.pyplot as plt
 from fossil_figures import apply_style, load_stdin
 
 
-VARIANT_RE = re.compile(r"^n(\d+)(-aot)?$")
+VARIANT_RE = re.compile(r"^n(\d+)-(stock-base|stock-full|aot-restricted|aot-full)$")
 
 STYLE = (
-    ("stock", "rss",       "#4c72b0", "o", "-",  "stock RSS"),
-    ("aot",   "rss",       "#dd8452", "s", "-",  "aot RSS"),
-    ("stock", "anon_exec", "#4c72b0", "o", "--", "stock anon-exec"),
-    ("aot",   "anon_exec", "#dd8452", "s", "--", "aot anon-exec"),
+    ("stock-base",     "anon_exec", "#4c72b0", "o", "-",  "stock --no-ion, anon-exec"),
+    ("aot-restricted", "anon_exec", "#dd8452", "s", "-",  "aot --aot-only, anon-exec"),
+    ("stock-full",     "anon_exec", "#55a868", "^", "-",  "stock default, anon-exec"),
+    ("aot-full",       "anon_exec", "#c44e52", "D", "-",  "aot, anon-exec"),
+    ("stock-base",     "rss",       "#4c72b0", "o", "--", "stock --no-ion, RSS"),
+    ("aot-restricted", "rss",       "#dd8452", "s", "--", "aot --aot-only, RSS"),
+    ("stock-full",     "rss",       "#55a868", "^", "--", "stock default, RSS"),
+    ("aot-full",       "rss",       "#c44e52", "D", "--", "aot, RSS"),
 )
 
 KEY = {"rss": "peak_rss_mb", "anon_exec": "peak_anon_exec_mb"}
@@ -36,8 +41,7 @@ def series(table, kind, key):
         match = VARIANT_RE.match(variant)
         if not match:
             continue
-        variant_kind = "aot" if match.group(2) else "stock"
-        if variant_kind != kind:
+        if match.group(2) != kind:
             continue
         entry = metrics.get(KEY[key])
         if entry is None:
@@ -62,8 +66,8 @@ for kind, key, color, marker, ls, label in STYLE:
     ys = [m for _, m, _ in points]
     es = [s for _, _, s in points]
     ax.errorbar(xs, ys, yerr=es, marker=marker, color=color,
-                linestyle=ls, label=label, linewidth=1.4, markersize=5,
-                capsize=3, markerfacecolor=color if ls == "-" else "white",
+                linestyle=ls, label=label, linewidth=1.2, markersize=4,
+                capsize=2, markerfacecolor=color if ls == "-" else "white",
                 markeredgecolor=color)
     plotted = True
 
@@ -75,7 +79,7 @@ ax.set_yscale("log")
 ax.set_xlabel("Worker JSRuntimes (N)")
 ax.set_ylabel("Memory (MB)")
 ax.set_title("Shell peak memory vs worker count")
-ax.legend(loc="upper left", frameon=False, fontsize=8, ncol=2)
+ax.legend(loc="upper left", frameon=False, fontsize=7, ncol=2)
 ax.grid(True, which="both", axis="both", linestyle=":", alpha=0.4)
 fig.tight_layout()
 fig.savefig(sys.argv[1])

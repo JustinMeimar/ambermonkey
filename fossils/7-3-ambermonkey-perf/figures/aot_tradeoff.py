@@ -1,13 +1,25 @@
 #!/home/justin/tools/fossil/figures/.venv/bin/python
 """Per-workload cost of AOT indirection and recovery over interpreter-only."""
 
+import os
+from pathlib import Path
 import statistics
 import sys
 
 import matplotlib.pyplot as plt
 from matplotlib.ticker import FixedLocator, FuncFormatter
 import numpy as np
-from fossil_figures import apply_style, load_stdin
+from fossil_figures import load_stdin
+
+PROJECT_DIR = Path(os.environ.get("FOSSIL_PROJECT_DIR", Path(__file__).resolve().parents[3]))
+sys.path.insert(0, str(PROJECT_DIR / "scripts"))
+from figure_style import (  # noqa: E402
+    AMBER_BLUE,
+    AMBER_RED,
+    FONT_SIZES,
+    apply_amber_style,
+    figure_size,
+)
 
 from common import (
     child,
@@ -45,9 +57,7 @@ def pretty_workload(name):
     return replacements.get(name, name)
 
 
-apply_style(column="double")
-plt.rcParams["pdf.fonttype"] = 42
-plt.rcParams["ps.fonttype"] = 42
+apply_amber_style("double")
 data = load_stdin()
 validate_data(data)
 
@@ -76,7 +86,7 @@ slower_count = sum(cost > 1.0 for _, cost, _ in effects)
 fig, (cost_ax, recovery_ax) = plt.subplots(
     1,
     2,
-    figsize=(7.0, 6.0),
+    figsize=figure_size("double", 6.0),
     sharey=True,
     gridspec_kw={"width_ratios": [1.08, 0.92]},
 )
@@ -84,7 +94,7 @@ y_positions = np.arange(len(effects))
 
 for y, (_, cost, recovery) in zip(y_positions, effects):
     cost_change = (cost - 1.0) * 100.0
-    cost_color = "#C73E1D" if cost_change > 0.0 else "#2E86AB"
+    cost_color = AMBER_RED if cost_change > 0.0 else AMBER_BLUE
     cost_ax.plot(
         cost_change,
         y,
@@ -98,12 +108,12 @@ for y, (_, cost, recovery) in zip(y_positions, effects):
         y,
         "o",
         markersize=3.3,
-        color="#2E86AB",
+        color=AMBER_BLUE,
     )
 
 labels = [pretty_workload(workload) for workload, _, _ in effects]
 cost_ax.set_yticks(y_positions)
-cost_ax.set_yticklabels(labels, fontsize=7)
+cost_ax.set_yticklabels(labels, fontsize=FONT_SIZES["note"])
 cost_ax.invert_yaxis()
 
 cost_ax.axvline(0.0, color="black", linewidth=0.8)
@@ -117,7 +127,7 @@ cost_ax.text(
     transform=cost_ax.transAxes,
     ha="center",
     va="bottom",
-    fontsize=7,
+    fontsize=FONT_SIZES["note"],
 )
 
 recovery_ax.axvline(1.0, color="black", linewidth=0.8)
@@ -136,7 +146,7 @@ fig.text(
     f"Ratios of browser-run means (n={n_runs}/configuration).",
     ha="right",
     va="bottom",
-    fontsize=6.2,
+    fontsize=FONT_SIZES["note"],
 )
 fig.subplots_adjust(
     left=0.30,

@@ -1,8 +1,6 @@
 name = "3-1-jit-memory"
 description = "Stock JIT allocation census on AWSY tp6: live instruction bytes, executable pools, smaps residency, and engine-owned machinery."
 default_iterations = 5
-# AWSY tearDown's perfherder aggregation hits math.log(0) with our per-run
-# entity count; the memory report we care about has already been written.
 allow_failure = true
 
 [analyze]
@@ -24,14 +22,10 @@ EMIT = "python3 /home/justin/spidermonkey/ambermonkey/fossils/3-1-jit-memory/scr
 # enough for the memory snapshot; the perfherder aggregation we throw
 # away is what benefits from more.
 AWSY_ARGS = "--iterations 1"
-# Quick smoke: three entities, one iteration. Confirms plumbing before
-# committing to a full run.
 AWSY_ARGS_QUICK = "--entities 3 --iterations 1 --per-tab-pause 3 --settle-wait-time 3"
 
 [variants]
 # Full tp6 run. tp6 is the AWSY default so no --tp5. Reproduces the
 # roughly 60-live-at-peak process census the paper uses.
 awsy-tp6-stock = "$INIT && cd @FIREFOX && @SANDBOX @MC_BROWSER ./mach awsy-test $AWSY_ARGS --binary @BIN_RELEASE --results \"$D\" 1>&2 && $EMIT"
-
-# Smoke variant for plumbing checks.
 awsy-tp6-stock-quick = "$INIT && cd @FIREFOX && @SANDBOX @MC_BROWSER ./mach awsy-test $AWSY_ARGS_QUICK --binary @BIN_RELEASE --results \"$D\" 1>&2 && $EMIT"

@@ -9,10 +9,28 @@ from benchmarks import manifest
 
 PREFIX = "parse_cycles"
 
-VARIANTS = {"head", "no-opts"}
-ITER_COUNT = 10_000_000_000
+BUILDS = ("default", "opt", "no-opt")
+ITER_COUNTS = {
+    "interrupt-check": 10_000_000_000,
+    "stack-check":     500_000_000,
+    "prebarrier":      500_000_000,
+    "vm-call":         20_000_000,
+    "abi-call":        100_000_000,
+    "arith":           100_000_000,
+    "prop-load":       100_000_000,
+    "array-load":      100_000_000,
+}
 REQUIRED_EVENTS = ("cycles:u", "instructions:u", "ref-cycles:u")
 MIN_RUNNING = 99.5
+
+
+def split_variant(variant):
+    # Match no-opt before opt: the former contains the latter as a suffix.
+    for build in sorted(BUILDS, key=len, reverse=True):
+        suffix = "-" + build
+        if variant.endswith(suffix):
+            return variant[: -len(suffix)], build
+    return None, None
 
 
 def parse_perf_ndjson(text):
@@ -47,8 +65,12 @@ def main():
     m = manifest.load(PREFIX)
 
     variant = m.get("variant")
-    if variant not in VARIANTS:
-        manifest.fail(PREFIX, f"unexpected variant {variant!r}")
+    bench, build = split_variant(variant or "")
+    if bench is None:
+        manifest.fail(PREFIX, f"variant {variant!r} does not match <bench>-<build>")
+    if bench not in ITER_COUNTS:
+        manifest.fail(PREFIX, f"no ITER_COUNTS entry for bench {bench!r}")
+    iter_count = ITER_COUNTS[bench]
 
     stdout = obs.get("stdout", "")
     obs_text = "\n".join(stdout) if isinstance(stdout, list) else stdout
@@ -73,8 +95,8 @@ def main():
         "cycles_user": cycles,
         "instructions_user": insns,
         "ref_cycles_user": refcyc,
-        "cycles_per_iter": cycles / ITER_COUNT,
-        "insns_per_iter": insns / ITER_COUNT,
+        "cycles_per_iter": cycles / iter_count,
+        "insns_per_iter": insns / iter_count,
         "ipc": (insns / cycles) if cycles else 0.0,
     }
 
@@ -86,7 +108,9 @@ def main():
         "runs": {iter_key: metrics},
         "meta": {
             "variant": variant,
-            "iter_count": ITER_COUNT,
+            "bench": bench,
+            "build": build,
+            "iter_count": iter_count,
             "commit": m.get("git", {}).get("commit", ""),
             "iterations": m.get("iterations"),
         },

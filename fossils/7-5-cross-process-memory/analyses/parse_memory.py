@@ -8,23 +8,29 @@ import sys
 sys.path.insert(0, os.environ["FOSSIL_PROJECT_DIR"] + "/scripts")
 from benchmarks import manifest
 
-PREFIX = "shell_rss"
+PREFIX = "shell_memory"
 
-VARIANT_RE = re.compile(r"^n(\d+)-(stock-base|stock-full|aot-restricted|aot-full)$")
+VARIANT_RE = re.compile(r"^(?P<bench>[a-z0-9-]+)-(?P<kind>interp|baseline|stock|aot-only|aot)$")
 RSS_RE = re.compile(r"peak_rss_kb=(\d+)")
+ANON_RE = re.compile(r"peak_anon_kb=(\d+)")
 ANON_EXEC_RE = re.compile(r"peak_anon_exec_kb=(\d+)")
 
-# For each variant kind, the flags that must and must not appear in the command.
+BENCHES = {
+    "richards", "deltablue", "crypto", "raytrace", "earley-boyer", "regexp",
+    "splay", "navier-stokes", "pdfjs", "mandreel", "gbemu", "code-load",
+    "box2d", "zlib", "typescript",
+}
+
 FLAG_CONTRACT = {
-    "stock-base":     {"require": ["--no-ion"],                             "forbid": ["--aot", "--aot-only"]},
-    "stock-full":     {"require": [],                                        "forbid": ["--aot", "--aot-only", "--no-ion"]},
-    "aot-restricted": {"require": ["--aot", "--aot-only", "--no-ion"],       "forbid": []},
-    "aot-full":       {"require": ["--aot"],                                 "forbid": ["--aot-only", "--no-ion"]},
+    "interp":   {"require": ["--no-jit-backend"],  "forbid": ["--aot", "--aot-only", "--no-ion"]},
+    "baseline": {"require": ["--no-ion"],          "forbid": ["--aot", "--aot-only", "--no-jit-backend"]},
+    "stock":    {"require": [],                     "forbid": ["--aot", "--aot-only", "--no-ion", "--no-jit-backend"]},
+    "aot":      {"require": ["--aot"],              "forbid": ["--aot-only", "--no-ion", "--no-jit-backend"]},
+    "aot-only": {"require": ["--aot", "--aot-only"], "forbid": ["--no-ion", "--no-jit-backend"]},
 }
 
 
 def has_flag(cmd, flag):
-    """Whole-token match so --aot does not match --aot-only."""
     return any(tok == flag for tok in cmd.split())
 
 
@@ -33,10 +39,13 @@ def validate(m):
     match = VARIANT_RE.match(variant)
     if not match:
         manifest.fail(PREFIX, f"unexpected variant {variant!r}")
-    workers = int(match.group(1))
-    kind = match.group(2)
+    bench = match.group("bench")
+    kind = match.group("kind")
+    if bench not in BENCHES:
+        manifest.fail(PREFIX, f"{variant}: unknown benchmark {bench!r}")
     cmd = m.get("command", "")
-
+    if f"run-{bench}.js" not in cmd:
+        manifest.fail(PREFIX, f"{variant}: run-{bench}.js not in command")
     contract = FLAG_CONTRACT[kind]
     for flag in contract["require"]:
         if not has_flag(cmd, flag):
@@ -44,30 +53,32 @@ def validate(m):
     for flag in contract["forbid"]:
         if has_flag(cmd, flag):
             manifest.fail(PREFIX, f"{variant}: forbidden flag present {flag}")
-    if f"-- {workers}" not in cmd:
-        manifest.fail(PREFIX, f"{variant}: worker arg {workers} not in command")
-    return variant, workers, kind
+    return variant, bench, kind
 
 
 def main():
     m = manifest.load(PREFIX)
-    variant, workers, kind = validate(m)
+    variant, bench, kind = validate(m)
     obs = json.load(sys.stdin)
     stderr = obs.get("stderr", "")
     lines = stderr if isinstance(stderr, list) else stderr.splitlines()
 
-    peak = None
-    anon = None
+    rss = anon = anon_exec = None
     for line in lines:
         mm = RSS_RE.search(line)
         if mm:
-            peak = int(mm.group(1))
-        mm = ANON_EXEC_RE.search(line)
+            rss = int(mm.group(1))
+        mm = ANON_RE.search(line)
         if mm:
             anon = int(mm.group(1))
-    if peak is None:
+        mm = ANON_EXEC_RE.search(line)
+        if mm:
+            anon_exec = int(mm.group(1))
+    if rss is None:
         manifest.fail(PREFIX, "peak_rss_kb not found in stderr; wrapper failed")
     if anon is None:
+        manifest.fail(PREFIX, "peak_anon_kb not found in stderr; wrapper failed")
+    if anon_exec is None:
         manifest.fail(PREFIX, "peak_anon_exec_kb not found in stderr; wrapper failed")
 
     iteration = obs.get("iteration")
@@ -75,11 +86,13 @@ def main():
         manifest.fail(PREFIX, f"invalid iteration {iteration!r}")
 
     metrics = {
-        "peak_rss_kb": peak,
-        "peak_rss_mb": round(peak / 1024, 3),
-        "peak_anon_exec_kb": anon,
-        "peak_anon_exec_mb": round(anon / 1024, 3),
-        "workers": workers,
+        "peak_rss_kb": rss,
+        "peak_rss_mb": round(rss / 1024, 3),
+        "peak_anon_kb": anon,
+        "peak_anon_mb": round(anon / 1024, 3),
+        "peak_anon_exec_kb": anon_exec,
+        "peak_anon_exec_mb": round(anon_exec / 1024, 3),
+        "bench": bench,
         "kind": kind,
     }
     out = {

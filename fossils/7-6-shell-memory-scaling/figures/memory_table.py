@@ -1,11 +1,18 @@
 #!/home/justin/tools/fossil/figures/.venv/bin/python
 """Emit shell-memory-table.json for the paper's memory subsection.
 
-One row per worker count with stock/aot totals for total RSS and
-anonymous-executable residency, plus a percent reduction on anon-exec
-(the JIT-attributable slice). A final `slope-mb-per-N` row carries
-the OLS slope of each column vs N (fit on N > 1), so the paper can
-cite per-runtime marginal cost via `cell-value`."""
+Four variants per worker count. The table reports peak anonymous-executable
+residency (the JIT-attributable slice) for all four, plus the two natural
+reduction pairs:
+
+  (stock-base -> aot-restricted)  restricted-execution deployment
+  (stock-full -> aot-full)        opportunistic sharing in a full-tier deployment
+
+A final `slope-mb-per-N` row carries the OLS slope of each column vs N
+(fit on N > 1) so the paper can cite per-runtime marginal cost via cell-value.
+
+Total RSS is dominated by non-JIT per-worker overhead and is emitted to a
+companion JSON so the memory subsection can reference it separately."""
 
 import re
 import sys
@@ -14,7 +21,9 @@ from pathlib import Path
 from fossil_figures import load_stdin, write_typst_table
 
 
-VARIANT_RE = re.compile(r"^n(\d+)(-aot)?$")
+VARIANT_RE = re.compile(r"^n(\d+)-(stock-base|stock-full|aot-restricted|aot-full)$")
+
+KINDS = ("stock-base", "stock-full", "aot-restricted", "aot-full")
 
 
 def scalar(metric, key):
@@ -34,6 +43,47 @@ def slope(pairs):
     return (n * sxy - sx * sy) / denom
 
 
+def reduction(base, aot):
+    return 1.0 - aot / base if base > 0 else 0.0
+
+
+def build_rows(by_n, metric_key):
+    Ns = sorted(n for n, v in by_n.items() if all(k in v for k in KINDS))
+    if not Ns:
+        raise SystemExit(f"memory_table: no complete four-way rows for {metric_key}")
+
+    rows = []
+    for n in Ns:
+        stock_base = by_n[n]["stock-base"][metric_key]
+        stock_full = by_n[n]["stock-full"][metric_key]
+        aot_rest   = by_n[n]["aot-restricted"][metric_key]
+        aot_full   = by_n[n]["aot-full"][metric_key]
+        rows.append([
+            str(n),
+            stock_base,
+            aot_rest,
+            reduction(stock_base, aot_rest),
+            stock_full,
+            aot_full,
+            reduction(stock_full, aot_full),
+        ])
+
+    Ns_fit = [n for n in Ns if n > 1]
+    if len(Ns_fit) >= 2:
+        def col_slope(kind):
+            return slope([(n, by_n[n][kind][metric_key]) for n in Ns_fit])
+        s_base = col_slope("stock-base")
+        s_full = col_slope("stock-full")
+        s_rest = col_slope("aot-restricted")
+        s_afull = col_slope("aot-full")
+        rows.append([
+            "slope-mb-per-N",
+            s_base, s_rest, reduction(s_base, s_rest),
+            s_full, s_afull, reduction(s_full, s_afull),
+        ])
+    return rows
+
+
 def main():
     data = load_stdin()
 
@@ -43,53 +93,38 @@ def main():
         if not match:
             continue
         n = int(match.group(1))
-        kind = "aot" if match.group(2) else "stock"
+        kind = match.group(2)
         by_n.setdefault(n, {})[kind] = {
-            "rss": scalar(metric, "peak_rss_mb"),
             "anon": scalar(metric, "peak_anon_exec_mb"),
+            "rss":  scalar(metric, "peak_rss_mb"),
         }
 
-    Ns = sorted(n for n, v in by_n.items() if "stock" in v and "aot" in v)
-    if not Ns:
-        raise SystemExit("memory_table: no complete stock+aot pairs")
-
-    def reduction(stock, aot):
-        return 1.0 - aot / stock if stock > 0 else 0.0
-
-    rows = []
-    for n in Ns:
-        stock = by_n[n]["stock"]
-        aot = by_n[n]["aot"]
-        rows.append([
-            str(n),
-            stock["rss"], aot["rss"], reduction(stock["rss"], aot["rss"]),
-            stock["anon"], aot["anon"], reduction(stock["anon"], aot["anon"]),
-        ])
-
-    Ns_fit = [n for n in Ns if n > 1]
-    if len(Ns_fit) >= 2:
-        s_rss_stock = slope([(n, by_n[n]["stock"]["rss"]) for n in Ns_fit])
-        s_rss_aot   = slope([(n, by_n[n]["aot"]["rss"])   for n in Ns_fit])
-        s_ae_stock  = slope([(n, by_n[n]["stock"]["anon"]) for n in Ns_fit])
-        s_ae_aot    = slope([(n, by_n[n]["aot"]["anon"])   for n in Ns_fit])
-        rows.append([
-            "slope-mb-per-N",
-            s_rss_stock, s_rss_aot, reduction(s_rss_stock, s_rss_aot),
-            s_ae_stock, s_ae_aot, reduction(s_ae_stock, s_ae_aot),
-        ])
+    anon_columns = [
+        {"key": "workers",              "label": "N",                     "align": "right", "format": "str"},
+        {"key": "stock_base_mb",        "label": "stock --no-ion",        "align": "right", "format": "float"},
+        {"key": "aot_restricted_mb",    "label": "aot --aot-only",        "align": "right", "format": "float"},
+        {"key": "restricted_reduction", "label": "restricted Δ",          "align": "right", "format": "percent"},
+        {"key": "stock_full_mb",        "label": "stock default",         "align": "right", "format": "float"},
+        {"key": "aot_full_mb",          "label": "aot",                   "align": "right", "format": "float"},
+        {"key": "full_reduction",       "label": "full-tier Δ",           "align": "right", "format": "percent"},
+    ]
 
     write_typst_table(
         Path(sys.argv[1]).with_suffix(".json"),
-        columns=[
-            {"key": "workers",             "label": "N",              "align": "right", "format": "str"},
-            {"key": "stock_rss_mb",        "label": "stock RSS",      "align": "right", "format": "float"},
-            {"key": "aot_rss_mb",          "label": "aot RSS",        "align": "right", "format": "float"},
-            {"key": "rss_reduction",       "label": "RSS Δ",          "align": "right", "format": "percent"},
-            {"key": "stock_anon_exec_mb",  "label": "stock anon-exec", "align": "right", "format": "float"},
-            {"key": "aot_anon_exec_mb",    "label": "aot anon-exec",   "align": "right", "format": "float"},
-            {"key": "anon_exec_reduction", "label": "anon-exec Δ",     "align": "right", "format": "percent"},
-        ],
-        rows=rows,
+        columns=anon_columns,
+        rows=build_rows(by_n, "anon"),
+    )
+
+    # Companion RSS table alongside the primary anon-exec output.
+    rss_path = Path(sys.argv[1]).with_name("memory-table-rss.json")
+    rss_columns = [dict(c) for c in anon_columns]
+    for c in rss_columns[1:]:
+        if c["key"].endswith("_mb"):
+            c["label"] = c["label"] + " (RSS)"
+    write_typst_table(
+        rss_path,
+        columns=rss_columns,
+        rows=build_rows(by_n, "rss"),
     )
 
 
