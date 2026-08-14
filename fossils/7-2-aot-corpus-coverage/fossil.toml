@@ -1,5 +1,5 @@
 name = "7-2-aot-corpus-coverage"
-description = "AOT corpus coverage under real workloads. Two directions: utilization (what fraction of the packed baseline-function and IC-stub corpus the workload touched) and workload coverage (what fraction of the distinct CacheIR shapes JetStream 3 / Speedometer 3 requested the image was able to serve). Everything is counted at request time in every AOT-using firefox process, so GC-driven stub purges and script teardown cannot lose counts."
+description = "AOT corpus coverage under held-out workloads. Three evaluation populations: eight tp6_test sites (in-domain generalization, one variant each so per-site medians and ranges are recoverable), Speedometer 3.1, and JetStream 3.0. Two directions per population: utilization (what fraction of the packed baseline-function and IC-stub corpus was touched) and workload coverage (what fraction of the distinct CacheIR shapes requested the image was able to serve). Everything is counted at request time in every AOT-using firefox process, so GC-driven stub purges and script teardown cannot lose counts."
 default_iterations = 3
 allow_failure = false
 
@@ -17,6 +17,10 @@ script = "figures/baseline_interpreter_table.py"
 [tables.ic-table]
 analysis = "coverage"
 script = "figures/ic_table.py"
+
+[tables.ic-per-site-tp6-test]
+analysis = "coverage"
+script = "figures/ic_per_site_tp6_test.py"
 
 [variables]
 # Per-iteration scratch dir. AOTCoverage writes one file per firefox
@@ -39,3 +43,16 @@ REDUCE = "python3 /home/justin/spidermonkey/ambermonkey/fossils/7-2-aot-corpus-c
 [variants]
 jetstream3   = "$INIT && $RAPTOR -t jetstream3   1>&2 && $REDUCE"
 speedometer3 = "$INIT && $RAPTOR -t speedometer3 1>&2 && $REDUCE"
+
+# tp6_test: the eight held-out tp6 sites frozen in 7-1's test.txt. One
+# raptor invocation per site so per-site coverage is directly
+# recoverable, and the reporter can compute a median and range across
+# the eight independent observations rather than a pooled aggregate.
+reddit       = "$INIT && $RAPTOR -t reddit       1>&2 && $REDUCE"
+tumblr       = "$INIT && $RAPTOR -t tumblr       1>&2 && $REDUCE"
+twitch       = "$INIT && $RAPTOR -t twitch       1>&2 && $REDUCE"
+twitter      = "$INIT && $RAPTOR -t twitter      1>&2 && $REDUCE"
+wikia        = "$INIT && $RAPTOR -t wikia        1>&2 && $REDUCE"
+wikipedia    = "$INIT && $RAPTOR -t wikipedia    1>&2 && $REDUCE"
+yahoo-mail   = "$INIT && $RAPTOR -t yahoo-mail   1>&2 && $REDUCE"
+youtube      = "$INIT && $RAPTOR -t youtube      1>&2 && $REDUCE"

@@ -2,50 +2,60 @@
 
 ## Question the fossil answers
 
-What is the AOT artifact corpus that the release browser compiles over
-tp6, and how big is it? The run is also the corpus *producer*: the
+What AOT artifact corpus does the release browser compile over the
+tp6_train partition, how big is it, and how much of a held-out training
+site does it already cover? The run is also the corpus *producer*: the
 recorded artifacts are the input to the packed AOT image.
 
 ## Selection policy
 
 The recorder observes the compile stream, not the execution stream. It
 fires when baseline or an IC stub is compiled and writes the artifact;
-nothing counts entries. There is no frequency to weight by, so within a
-kind the only lever is how many sites shared the artifact.
+nothing counts entries. There is no frequency to weight by.
 
-**The corpus takes IC stubs from the sites and drops their baseline
-functions.** 7-2 measured a tp6-derived corpus against speedometer3. IC
-stubs served 99.6% of stub-code requests and covered 90.9% of the
-distinct CacheIR programs the workload asked for. Recorded baseline
-functions served 4.9% of baseline compile requests, and 65% of the
-packed baseline corpus was never installed at all.
+The training partition is frozen alphabetically: `train.txt` lists the
+first 24 tp6 sites, `test.txt` the last 8. Both files are checked in.
+All 32 sites are recorded; the extra 8 held-out recordings are the
+input to 7-2's tp6_test coverage variants, not to the packer.
 
-Baseline functions are also where the bytes are. The tp6 union is 26229
-baseline functions against 1864 IC stubs in 73 MB total, which is why
-the sweep reports baseline in MB and IC in KB. The dropped kind was
-buying 4.9% for very nearly the whole image.
+**The corpus is the union of every supported IC-body identity observed
+in the training sites.** No prevalence threshold, no request-count
+weighting, no byte budget. Prior data motivates the two policy shapes
+that remain:
 
-The drop is a flag on the selector, `--exclude-kind blfun`, not a
-property of the scripts. `threshold_sweep.py` deliberately still indexes
-both kinds: the per-site sharing curve for baseline functions is the
-evidence for this policy, and it has to stay measurable to stay
-falsifiable.
+- Baseline functions are dropped as a class, via `--exclude-kind blfun`.
+  7-2 measured a tp6-derived corpus against Speedometer3: recorded
+  baseline functions served 4.9% of baseline compile requests and 65%
+  of the packed baseline corpus was never installed at all. The
+  leave-one-site-out table this fossil now emits reproduces the same
+  finding at training-set granularity.
 
-Baseline functions still enter the corpus, but only the self-hosted
-library, and not by observation. See below.
+- Self-hosted baseline functions are the one baseline set that
+  transfers, and they enter the corpus in whole via `--self-hosted`,
+  exempt from `--exclude-kind`. Their source is fixed at build time, so
+  the training corpus does not gate them.
 
-The union costs nothing to compute. Artifact names *are* identity
-hashes, files are opened `O_EXCL`, and `EEXIST` is treated as success.
-So every site and every content process can write into one directory and
-the filesystem forms the union with no locking, no merge step and no
-per-site subdirectory.
+Within-kind selection is the union. Artifact names *are* identity
+hashes, files are opened `O_EXCL`, and `EEXIST` is treated as success,
+so a training subset union is the union of the subset's filenames.
 
-For ICs that identity covers `cacheKind`, the CacheIR bytes and the
+Representability, not prevalence, is what rejects a body. Bodies whose
+dependency forms the classifier cannot represent are dropped at pack
+time. Their count and rejection reasons are a separate diagnostic; they
+are not a selection decision.
+
+For ICs the identity covers `cacheKind`, the CacheIR bytes and the
 field *types*, not the field values. Two sites compiling the same
 CacheIR program against different shapes produce one artifact. That is
 also why they transfer: the identity is shape-free, so a program some
 other workload compiles resolves to an artifact this one already
 recorded.
+
+`scripts/emit_composition.py` writes the union counts, the
+singleton/recurrent split, and a threshold sweep as a diagnostic table.
+The paper cites the sweep to show that the singleton tail is small
+enough that pruning is unnecessary; nothing downstream in the pipeline
+consumes a threshold.
 
 ## Recording
 
@@ -133,11 +143,12 @@ live sites rather than replay.
 
 `mach jit-aot build` does not apply: it is hardcoded to the stage-1
 shell and `objdir/aot-record`. Pack the selected corpus, never the raw
-recording dir, which still holds every per-site baseline function:
+recording dir, which still holds every per-site baseline function and
+every held-out site's IC bodies:
 
-    python3 scripts/soft_intersection.py \
+    python3 scripts/select_corpus.py \
       /tmp/amber-aot-corpus /tmp/amber-aot-selected \
-      --threshold 0.25 --budget 4000000 \
+      --sites train.txt \
       --exclude-kind blfun \
       --self-hosted /tmp/amber-aot-selfhosted
 
@@ -148,17 +159,24 @@ recording dir, which still holds every per-site baseline function:
     touch js/src/jit/aot/AOTImageIncbin.cpp
     ./mach build binaries
 
+`--sites train.txt` restricts indexing to the 24 training subdirs. Any
+held-out site's per-site subdir under `@CORPUS` is ignored, so recording
+tp6_test never contaminates the pack.
+
 `interp.aotb` and `configuration.aotb` are singletons rather than hashed
 identities; the installer resolves the configuration with a unique
 lookup, so exactly one of each belongs in the dir. The selector picks
-one of each and verifies the sites agree on the configuration.
+one of each and verifies the training sites agree on the configuration.
 
 ## Tables
 
-`threshold_sweep.py` answers which threshold to pick.
-`corpus_tables.py` answers what a chosen corpus is made of, and how two
-candidates differ as sets. Both emit the `{columns, rows}` shape the
-typst `json-table` loader reads, with values left numeric.
+`emit_composition.py` writes the paper's `7-1-selection.json`: union
+counts, singleton/recurrent split, and the diagnostic threshold sweep.
+`loso.py` writes the paper's leave-one-site-out coverage table over the
+24 training sites, for both IC bodies and baseline functions.
+`corpus_tables.py` answers what a chosen corpus is made of and how two
+candidates differ as sets; it is invoked ad hoc for ablations, not from
+`fossil bury`.
 
     python3 scripts/corpus_tables.py \
       full=/path/to/corpus-a ics-selfhosted=/path/to/corpus-b \

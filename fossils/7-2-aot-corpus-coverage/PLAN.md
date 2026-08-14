@@ -1,9 +1,23 @@
 
-AOT corpus coverage under browser workloads. Each firefox
+AOT corpus coverage under held-out browser workloads. Each firefox
 process that touches the AOT image writes one coverage JSON at
 shutdown (js/src/jit/AOTCoverage.cpp). A run collects one file
 per pid; the reducer folds them into a single row of static +
 dynamic coverage figures.
+
+Three evaluation populations:
+
+- **tp6_test**: the eight tp6 sites 7-1 holds out (`test.txt`). One
+  raptor variant per site, so per-site coverage is directly
+  observable. The figures fold the eight variants into a median plus
+  min-max range so a single low-coverage site cannot vanish into a
+  pooled aggregate.
+- **speedometer3**: Speedometer 3.1, unseen interactive-web workloads.
+- **jetstream3**: JetStream 3.0, unseen language-runtime and
+  WebAssembly workloads (domain shift).
+
+The image under test is the frozen tp6_train union built by 7-1. No
+identity from any of these three populations contributed to the pack.
 
 Static coverage: fraction of packed baseline-function and IC-stub
 blobs that were actually installed / attached at least once. The
@@ -41,13 +55,18 @@ State.
 
 ## Tables
 
-One table per artifact population, all fed from the same `coverage`
-analysis fold. Fossil hands each script the cross-variant fold on
-stdin and the script writes a sibling `.json` for the typst
-`json-table` loader. Metric names are unqualified because the table
-title already carries the artifact context; cells are the mean only
-(variance across iterations is zero to display precision, so `± 0`
-was pure noise).
+All tables are fed from the same `coverage` analysis fold. Fossil
+hands each script the cross-variant fold on stdin and the script
+writes a sibling `.json` for the typst `json-table` loader. Metric
+names are unqualified because the table title already carries the
+artifact context; cells are the mean across iterations only (variance
+was zero to display precision).
+
+Three tables cover the three artifact populations with the
+three-population column layout (tp6-Test aggregate, Speedometer 3.1,
+JetStream 3.0). tp6-Test cells report the median across the eight
+site variants with the min-max range in brackets; suite cells are
+scalar means.
 
 - `baseline-function-table` — corpus size, installed, utilization,
   AOT hit rate.
@@ -62,6 +81,14 @@ was pure noise).
   still computed but not surfaced because AOT hit rate already
   answers the "how well does the corpus serve this workload"
   question and the two numbers together invited misinterpretation.
+
+One fourth table surfaces the per-site tp6_test detail behind the
+aggregate cell:
+
+- `ic-per-site-tp6-test` — eight rows, one per tp6_test site, with
+  attached / utilization / total attaches / AOT hit rate columns. The
+  paper cites this alongside the aggregate ic-table so a reviewer can
+  see every site rather than trust a median.
 
 ### Reading the IC columns
 

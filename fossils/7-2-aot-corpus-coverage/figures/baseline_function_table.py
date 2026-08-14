@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
-"""Baseline-function coverage table. Metric names are unqualified — the
-table title carries the artifact context."""
+"""Baseline-function coverage table. Metric names are unqualified -- the
+table title carries the artifact context. tp6-Test cells are the median
+across the eight held-out site variants with the min-max range in
+brackets; suite cells are scalars."""
 
-from _common import emit
+from _common import emit_aggregate
 
 ROWS = [
     ("Corpus size",  "utilization.baseline_functions.total",    "count"),
@@ -12,4 +14,4 @@ ROWS = [
 ]
 
 if __name__ == "__main__":
-    emit("baseline_function_table", ROWS)
+    emit_aggregate("baseline_function_table", ROWS)
