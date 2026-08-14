@@ -3,6 +3,15 @@ description = "Record the AOT artifact corpus the release browser compiles over 
 default_iterations = 1
 allow_failure = false
 
+# Reads /tmp/amber-aot-corpus (per-site subdirs, populated by the bury
+# variants below) and /tmp/amber-aot-selfhosted (produced by the
+# self-hosted variant), sweeps sharing thresholds via threshold_sweep.py,
+# and emits the ic_stubs/ic_kb table plus the constants layer's headline
+# scalars. Requires both dirs to be populated; if @CORPUS is empty the
+# script fails loudly rather than emit misleading zeros.
+[tables.selection]
+script = "scripts/emit_selection_table.py"
+
 [variables]
 # Per-site subdir under @CORPUS. O_EXCL still dedups within a site.
 # Wipe per site before recording; a stale dump would survive as a

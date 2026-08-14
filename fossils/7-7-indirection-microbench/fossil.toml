@@ -10,9 +10,13 @@ cycles = "analyses/parse_cycles.py"
 analysis = "cycles"
 script = "figures/cycles_bars.py"
 
-[figures.cycles-table]
-analysis = "cycles"
-script = "figures/cycles_table.py"
+# Bypasses the strict analyses/parse_cycles.py path (which refuses to
+# aggregate when any observation has empty stdout) so we can emit a
+# best-effort table even with the small handful of legacy records where
+# perf produced no JSON. Reads records/ directly, skips bad observations,
+# and reports the drop counts in the emitted JSON.
+[tables.cycles]
+script = "scripts/emit_cycles_table.py"
 
 [variables]
 JSSHELL_DEFAULT = "@FIREFOX/build-shell-release/dist/bin/js"

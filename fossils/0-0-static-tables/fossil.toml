@@ -1,0 +1,10 @@
+name = "0-0-static-tables"
+description = "Hand-authored taxonomy tables consumed by the draft. Each table's source JSON lives under source/<table-name>.json and is emitted verbatim into the paper's paper_dir. No records, no analysis — this fossil exists so that non-experimental tables (dependency taxonomies, configuration definitions) travel through the same `fossil table` pipeline as measured tables and land in the same lib/json directory."
+default_iterations = 1
+allow_failure = false
+
+[tables.runtime-dependencies]
+script = "scripts/emit.sh"
+
+[tables.execution-configurations]
+script = "scripts/emit.sh"

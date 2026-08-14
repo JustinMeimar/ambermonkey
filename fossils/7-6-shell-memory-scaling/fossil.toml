@@ -10,7 +10,11 @@ rss = "analyses/parse_rss.py"
 analysis = "rss"
 script = "figures/rss_scaling.py"
 
-[figures.memory-table]
+[tables.scaling-jit]
+analysis = "rss"
+script = "figures/memory_table.py"
+
+[tables.scaling-rss]
 analysis = "rss"
 script = "figures/memory_table.py"
 

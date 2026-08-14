@@ -3,8 +3,9 @@
 
 Reads the latest record per configured TP6 site under records/, computes
 static Jaccard and directional coverage matrices, and emits medians plus
-per-target ranges. The paper reads the resulting file from
-my-papers/phase-4/lib/json/interworkload-coverage.json.
+per-target ranges. When invoked via `fossil table coverage` the target
+path arrives as argv[1]; run without arguments to write to stdout for
+ad-hoc inspection.
 """
 
 import json
@@ -41,7 +42,7 @@ def load_counters(records_dir, latest):
     for site in SITES:
         with open(os.path.join(records_dir, latest[site], "results.json")) as f:
             r = json.load(f)
-        ic_req, ic_ent, bl_req = Counter(), Counter(), Counter()
+        ic_req, ic_ent, bl_comp, bl_ent = Counter(), Counter(), Counter(), Counter()
         for obs in r.get("observations", []):
             stdout = obs.get("stdout")
             if isinstance(stdout, list):
@@ -51,11 +52,12 @@ def load_counters(records_dir, latest):
             bl_c = ((payload.get("baseline") or {}).get("content") or {})
             ic_req.update({k: int(v) for k, v in ic_c.get("attaches", {}).items()})
             ic_ent.update({k: int(v) for k, v in ic_c.get("entered", {}).items()})
-            bl_req.update({k: int(v) for k, v in bl_c.get("attaches", {}).items()})
+            bl_comp.update({k: int(v) for k, v in bl_c.get("compiles", {}).items()})
+            bl_ent.update({k: int(v) for k, v in bl_c.get("entered", {}).items()})
         ic_sets[site] = set(ic_req)
         ic_freqs[site] = ic_ent
-        bl_sets[site] = set(bl_req)
-        bl_freqs[site] = bl_req
+        bl_sets[site] = set(bl_comp)
+        bl_freqs[site] = bl_ent
     return ic_sets, ic_freqs, bl_sets, bl_freqs
 
 
@@ -131,8 +133,13 @@ def main():
         "ic_coverage_argmin": find_argmin_pair(ic_cov),
     }
 
-    json.dump(output, sys.stdout, indent=2, sort_keys=True)
-    sys.stdout.write("\n")
+    if len(sys.argv) > 1:
+        with open(sys.argv[1], "w") as fh:
+            json.dump(output, fh, indent=2, sort_keys=True)
+            fh.write("\n")
+    else:
+        json.dump(output, sys.stdout, indent=2, sort_keys=True)
+        sys.stdout.write("\n")
 
 
 if __name__ == "__main__":

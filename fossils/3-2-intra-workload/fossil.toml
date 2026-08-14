@@ -11,7 +11,7 @@ ic-top-table = "analyses/ic_top_table.py"
 analysis = "ic-rank"
 script = "figures/pareto_band_ic.py"
 
-[figures.concentration-summary]
+[tables.concentration]
 analysis = "ic-rank"
 script = "figures/concentration_summary.py"
 

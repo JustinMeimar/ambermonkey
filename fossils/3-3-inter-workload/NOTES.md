@@ -31,9 +31,9 @@ Firefox is instrumented via a per-process JSONL sink at
 - `JS_INSTR_DIR=<dir>` output directory; one file per process named
   `<proc>.<pid>.jsonl` where `<proc>` is one of `parent`, `content`,
   `gpu`, `rdd`, `socket`, `gmplugin`, ...
-- `JS_INSTR_MODE=structural|demand`. Structural leaves emitted code
-  bytes clean (recommended). Demand adds a per-JitScript entry
-  counter bump to the baseline prologue; irrelevant for this fossil.
+- `JS_INSTR_MODE=structural|demand`. Structural leaves emitted code bytes
+  clean. This fossil uses demand mode, which adds a per-JitScript entry-counter
+  bump to the compiled Baseline prologue.
 - `JS_INSTR_RUN_ID=<opaque>` recorded in the run-header event.
 
 Channels used here:
@@ -62,6 +62,10 @@ Every emitted line carries a common header: `v`, `kind`, `seq`,
   every JitScript in every zone of a runtime. Carries `reason`, per-
   script rows with `ic_entries: [{site_local_id, ic_body_id,
   entered_count, is_fallback}]`.
+- `baseline-entries-retire` — final compiled-Baseline prologue-entry count for
+  a JitScript destroyed before terminal shutdown. The terminal
+  `entries-flush` supplies the corresponding count for scripts still live at
+  shutdown.
 
 `enteredCount()` on an ICStub is bumped unconditionally by the emitted
 stub code at `BaselineCacheIRCompiler.cpp:235-236`; it does not depend
@@ -156,9 +160,10 @@ Per process type, produces:
   (in the flush) or gone (in a detach event), never both. Summing is
   exact for total lifetime executions per body.
 
-Also emits `baseline.{content|parent}.attaches` — baseline compile
-events keyed by `semantic_id`. Not used by 3-3's figure but retained
-for future analyses.
+Also emits `baseline.{content|parent}.compiles` and `.entered`. Compilation
+events define the static semantic-identity set. Retired-script events and the
+terminal live-script snapshot provide the function-entry weights used by
+panel (b).
 
 ## Analysis (`analyses/ic_set.py`)
 

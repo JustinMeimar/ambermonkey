@@ -23,6 +23,7 @@ Event schema (see js/src/jit/Instr.cpp):
   baseline-compile   script_local_id, semantic_id, code_id,
                      method_bytes, metadata_bytes, num_ic_entries
   baseline-retire    script_local_id
+  baseline-entries-retire script_local_id, entered_count
   ic-body-emit       ic_body_local_id, ic_body_id, cache_kind,
                      body_bytes, stub_data_bytes, coupling[...]
   ic-instance-attach site_local_id, script_local_id, ic_body_id,

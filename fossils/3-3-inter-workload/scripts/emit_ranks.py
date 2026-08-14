@@ -1,41 +1,21 @@
 #!/usr/bin/env python3
-"""Reduce a JS_INSTR_DIR of per-process JSONL into per-body IC
-metrics, split by process type (content vs parent).
+"""Reduce per-process Baseline and IC demand into artifact counters.
 
-For each process type we emit two Counters keyed by ic_body_id:
+Baseline output has two counters keyed by semantic_id:
 
-    attaches  : sum of ic-instance-attach events. One count per time
-                a stub is wired into an IC chain. Cheap; poor proxy
-                for hotness (attach != execution).
+    compiles : successful baseline-compile events.
+    entered  : compiled Baseline prologue entries. Retired JitScripts
+               contribute baseline-entries-retire; scripts still live at
+               terminal shutdown contribute entries-flush rows.
 
-    entered   : real per-stub execution counts. Composed from two
-                complementary sources so every stub that ever ran
-                contributes exactly once:
-                  * entries-flush emitted at process shutdown
-                    (JitInstrReporter observes xpcom-shutdown in the
-                    parent and content-child-shutdown in content),
-                    covering stubs still live when the flush fires.
-                  * ic-instance-detach.entered_count, covering stubs
-                    that were unplugged during the run and are gone
-                    by shutdown.
-                These populations are disjoint: a stub is either alive
-                at shutdown (counted in flush) or gone (counted in
-                detach), never both.
+IC output has two counters keyed by ic_body_id:
 
-Baseline is attach-only; the instrumentation has no per-baseline-body
-execution counter.
+    attaches : times a stub body is attached to an IC chain.
+    entered  : lifetime entries from pre-shutdown detach events plus live
+               stub counters in the terminal entries-flush.
 
-Output shape:
-    {
-      "ic": {
-        "content": {"attaches": {"HEX": n}, "entered": {"HEX": n}},
-        "parent":  { ...same shape... }
-      },
-      "baseline": {
-        "content": {"attaches": {"HEX": n}},
-        "parent":  {"attaches": {"HEX": n}}
-      }
-    }
+Only guest-class scripts contribute. Every content-process stream must declare
+demand mode and the lifecycle, IC, Demand, and Baseline channels.
 """
 
 import collections
@@ -44,102 +24,226 @@ import os
 import sys
 
 
-def die(msg):
-    print(f"emit_ranks: FATAL: {msg}", file=sys.stderr)
+INSTR_CH_LIFECYCLE = 1 << 0
+INSTR_CH_IC = 1 << 1
+INSTR_CH_DEMAND = 1 << 2
+INSTR_CH_BASELINE = 1 << 6
+REQUIRED_CHANNELS = (
+    INSTR_CH_LIFECYCLE | INSTR_CH_IC | INSTR_CH_DEMAND | INSTR_CH_BASELINE
+)
+ACCEPTED_SOURCE_CLASS = "guest"
+
+
+def die(message):
+    print(f"emit_ranks: FATAL: {message}", file=sys.stderr)
     sys.exit(1)
 
 
-def parse(path, s):
-    with open(path) as f:
-        for ln in f:
-            if ('"ic-instance-attach"' not in ln
-                    and '"ic-instance-detach"' not in ln
-                    and '"baseline-compile"' not in ln
-                    and '"entries-flush"' not in ln):
+def script_class(state, script_id, context):
+    source_class = state["script_classes"].get(script_id)
+    if source_class is None:
+        die(f"{context}: script {script_id} has no script-create event")
+    return source_class
+
+
+def baseline_identity(state, script_id, context):
+    identity = state["baseline_by_script"].get(script_id)
+    if identity is None:
+        die(f"{context}: script {script_id} has no baseline-compile event")
+    return identity
+
+
+def parse(path, state):
+    with open(path) as stream:
+        for line in stream:
+            if not any(
+                kind in line
+                for kind in (
+                    '"run-header"',
+                    '"script-create"',
+                    '"baseline-compile"',
+                    '"baseline-entries-retire"',
+                    '"ic-instance-attach"',
+                    '"ic-instance-detach"',
+                    '"entries-flush"',
+                )
+            ):
                 continue
-            o = json.loads(ln)
-            k = o["kind"]
-            if k == "ic-instance-attach":
-                s["attaches_ic"][o["ic_body_id"]] += 1
-            elif k == "baseline-compile":
-                s["attaches_bl"][o["semantic_id"]] += 1
-            elif k == "ic-instance-detach":
-                # Detached-before-shutdown stubs: no snapshot can see
-                # them. Capture their lifetime enter counts here.
-                if o.get("is_fallback"):
+            event = json.loads(line)
+            kind = event["kind"]
+            if kind == "run-header":
+                if state["mode"] is not None:
+                    die(f"{path}: duplicate run-header")
+                state["mode"] = event.get("mode")
+                state["channels"] = int(event.get("channels", 0))
+            elif kind == "script-create":
+                script_id = int(event["script_local_id"])
+                source_class = event.get("source_class", "unknown")
+                previous = state["script_classes"].setdefault(
+                    script_id, source_class
+                )
+                if previous != source_class:
+                    die(f"{path}: script {script_id} changed source class")
+            elif kind == "baseline-compile":
+                script_id = int(event["script_local_id"])
+                identity = event["semantic_id"]
+                previous = state["baseline_by_script"].setdefault(
+                    script_id, identity
+                )
+                if previous != identity:
+                    die(f"{path}: script {script_id} changed semantic identity")
+                if script_class(state, script_id, path) == ACCEPTED_SOURCE_CLASS:
+                    state["compiles_bl"][identity] += 1
+            elif kind == "baseline-entries-retire":
+                count = int(event.get("entered_count", 0))
+                if not count:
                     continue
-                ec = int(o.get("entered_count", 0))
-                if ec:
-                    s["entered_ic"][o["ic_body_id"]] += ec
-            elif k == "entries-flush":
-                # Still-live stubs at shutdown: enter counts are
-                # authoritative snapshots.
-                s["flush_count"][0] += 1
-                for row in o.get("scripts", []) or []:
-                    for e in row.get("ic_entries", []) or []:
-                        if e.get("is_fallback"):
+                script_id = int(event["script_local_id"])
+                if script_class(state, script_id, path) != ACCEPTED_SOURCE_CLASS:
+                    continue
+                identity = baseline_identity(state, script_id, path)
+                state["entered_bl"][identity] += count
+                state["retired_baseline_rows"] += 1
+            elif kind == "ic-instance-attach":
+                script_id = int(event["script_local_id"])
+                source_class = event.get("source_class", "unknown")
+                known_class = script_class(state, script_id, path)
+                if source_class != known_class:
+                    die(f"{path}: IC attach source class disagrees with script")
+                if source_class == ACCEPTED_SOURCE_CLASS:
+                    state["attaches_ic"][event["ic_body_id"]] += 1
+            elif kind == "ic-instance-detach":
+                if event.get("is_fallback") or state["terminal_with_scripts"]:
+                    continue
+                count = int(event.get("entered_count", 0))
+                if not count:
+                    continue
+                script_id = int(event["script_local_id"])
+                if script_class(state, script_id, path) == ACCEPTED_SOURCE_CLASS:
+                    state["entered_ic"][event["ic_body_id"]] += count
+            elif kind == "entries-flush":
+                if event.get("reason") != "runtime-shutdown":
+                    continue
+                runtime_id = int(event.get("rt", 0))
+                if not runtime_id:
+                    die(f"{path}: terminal entries-flush has no runtime id")
+                if runtime_id in state["terminal_runtimes"]:
+                    die(f"{path}: duplicate terminal flush for runtime {runtime_id}")
+                state["terminal_runtimes"].add(runtime_id)
+                state["flush_count"] += 1
+                rows = event.get("scripts", []) or []
+                if rows:
+                    state["terminal_with_scripts"] = True
+                for row in rows:
+                    script_id = int(row["script_local_id"])
+                    source_class = script_class(state, script_id, path)
+                    count = int(row.get("entered_count", 0))
+                    if count and source_class == ACCEPTED_SOURCE_CLASS:
+                        identity = baseline_identity(state, script_id, path)
+                        state["entered_bl"][identity] += count
+                    if source_class != ACCEPTED_SOURCE_CLASS:
+                        continue
+                    for entry in row.get("ic_entries", []) or []:
+                        if entry.get("is_fallback"):
                             continue
-                        ec = int(e.get("entered_count", 0))
-                        if ec:
-                            s["entered_ic"][e["ic_body_id"]] += ec
+                        count = int(entry.get("entered_count", 0))
+                        if count:
+                            state["entered_ic"][entry["ic_body_id"]] += count
+
+    if state["mode"] != "demand":
+        die(f"{path}: expected demand mode, observed {state['mode']!r}")
+    missing_channels = REQUIRED_CHANNELS & ~state["channels"]
+    if missing_channels:
+        die(
+            f"{path}: missing required instrumentation channels "
+            f"0x{missing_channels:x}"
+        )
 
 
 def new_proc_state():
     return {
+        "mode": None,
+        "channels": 0,
+        "script_classes": {},
+        "baseline_by_script": {},
         "attaches_ic": collections.Counter(),
-        "attaches_bl": collections.Counter(),
-        "entered_ic":  collections.Counter(),
-        "flush_count": [0],
+        "compiles_bl": collections.Counter(),
+        "entered_ic": collections.Counter(),
+        "entered_bl": collections.Counter(),
+        "terminal_runtimes": set(),
+        "terminal_with_scripts": False,
+        "flush_count": 0,
+        "retired_baseline_rows": 0,
     }
 
 
 def merge_state(destination, source):
     destination["attaches_ic"].update(source["attaches_ic"])
-    destination["attaches_bl"].update(source["attaches_bl"])
+    destination["compiles_bl"].update(source["compiles_bl"])
     destination["entered_ic"].update(source["entered_ic"])
-    destination["flush_count"][0] += source["flush_count"][0]
+    destination["entered_bl"].update(source["entered_bl"])
+    destination["flush_count"] += source["flush_count"]
+    destination["retired_baseline_rows"] += source["retired_baseline_rows"]
 
 
 def main(root):
     per_proc = {"content": new_proc_state(), "parent": new_proc_state()}
 
-    n_files = 0
-    for fn in sorted(os.listdir(root)):
-        if not fn.endswith(".jsonl"):
+    file_count = 0
+    for filename in sorted(os.listdir(root)):
+        if not filename.endswith(".jsonl"):
             continue
-        proc = fn.split(".", 1)[0]
-        if proc not in per_proc:
+        process = filename.split(".", 1)[0]
+        if process not in per_proc:
             continue
-        n_files += 1
+        file_count += 1
         file_state = new_proc_state()
-        parse(os.path.join(root, fn), file_state)
-        if (proc == "content" and file_state["attaches_ic"]
-                and file_state["flush_count"][0] == 0):
+        parse(os.path.join(root, filename), file_state)
+        if (
+            process == "content"
+            and (file_state["attaches_ic"] or file_state["compiles_bl"])
+            and file_state["flush_count"] == 0
+        ):
             die(
-                f"{fn} attached IC stubs but emitted no shutdown entries-flush; "
-                "dynamic counts would omit its live stubs"
+                f"{filename} requested artifacts but emitted no terminal "
+                "entries-flush; dynamic counts would omit live artifacts"
             )
-        merge_state(per_proc[proc], file_state)
+        merge_state(per_proc[process], file_state)
 
-    if n_files == 0:
+    if file_count == 0:
         die(f"no content/parent .jsonl files in {root}")
-    if not (per_proc["content"]["attaches_ic"]
-            or per_proc["parent"]["attaches_ic"]):
-        die("no ic-instance-attach events; InstrCh_IC disabled?")
-    if per_proc["content"]["flush_count"][0] == 0:
-        die("no content-process entries-flush events; either the Demand "
-            "channel is off (JS_INSTR must include 'demand' or be 'all') or "
-            "the content process did not complete its shutdown flush")
+    content = per_proc["content"]
+    if not content["attaches_ic"]:
+        die("no guest content-process IC attachment identities")
+    if not content["compiles_bl"]:
+        die("no guest content-process Baseline compilation identities")
+    if not content["entered_ic"]:
+        die("no guest content-process IC entry counts")
+    if not content["entered_bl"]:
+        die("no guest content-process Baseline entry counts")
+    missing_ic = set(content["entered_ic"]) - set(content["attaches_ic"])
+    if missing_ic:
+        die(f"{len(missing_ic)} entered IC bodies were never attached")
+    missing_bl = set(content["entered_bl"]) - set(content["compiles_bl"])
+    if missing_bl:
+        die(f"{len(missing_bl)} entered Baseline functions were never compiled")
 
-    out = {"ic": {}, "baseline": {}}
-    for proc, s in per_proc.items():
-        out["ic"][proc] = {
-            "attaches": dict(s["attaches_ic"]),
-            "entered":  dict(s["entered_ic"]),
+    output = {"ic": {}, "baseline": {}, "diagnostics": {}}
+    for process, state in per_proc.items():
+        output["ic"][process] = {
+            "attaches": dict(state["attaches_ic"]),
+            "entered": dict(state["entered_ic"]),
         }
-        out["baseline"][proc] = {"attaches": dict(s["attaches_bl"])}
+        output["baseline"][process] = {
+            "compiles": dict(state["compiles_bl"]),
+            "entered": dict(state["entered_bl"]),
+        }
+        output["diagnostics"][process] = {
+            "terminal_flushes": state["flush_count"],
+            "retired_baseline_rows": state["retired_baseline_rows"],
+        }
 
-    json.dump(out, sys.stdout)
+    json.dump(output, sys.stdout)
     sys.stdout.write("\n")
 
 

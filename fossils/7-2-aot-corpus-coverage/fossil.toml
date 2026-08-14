@@ -6,15 +6,15 @@ allow_failure = false
 [analyze]
 coverage = "analyses/parse_coverage.py"
 
-[figures.baseline-function-table]
+[tables.baseline-function-table]
 analysis = "coverage"
 script = "figures/baseline_function_table.py"
 
-[figures.baseline-interpreter-table]
+[tables.baseline-interpreter-table]
 analysis = "coverage"
 script = "figures/baseline_interpreter_table.py"
 
-[figures.ic-table]
+[tables.ic-table]
 analysis = "coverage"
 script = "figures/ic_table.py"
 

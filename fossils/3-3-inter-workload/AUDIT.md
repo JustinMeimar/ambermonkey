@@ -117,7 +117,7 @@ control, but it must not substitute for `about:blank`.
 Report, per workload and source class:
 
 - distinct Baseline and IC identities;
-- Baseline compile requests and IC entry weight;
+- Baseline function-entry and IC stub-entry weight;
 - intersection with the blank control;
 - fraction of workload weight covered by the blank control;
 - the eight-way intersection before and after filtering; and

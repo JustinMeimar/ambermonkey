@@ -162,7 +162,7 @@ display = [name.replace("google-", "g-") for name in columns]
 fig, axes = plt.subplots(1, 3, figsize=(7.0, 3.35))
 titles = (
     "(a) Static intersection\nBaseline ◣  /  IC ◥",
-    "(b) Baseline\ncompile-request coverage",
+    "(b) Baseline\nfunction-entry coverage",
     "(c) Inline-cache\nstub-entry coverage",
 )
 

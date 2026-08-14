@@ -1,19 +1,17 @@
 #!/home/justin/tools/fossil/figures/.venv/bin/python
-"""Emit shell-memory-table.json for the paper's memory subsection.
+"""Emit a per-worker memory table.
 
-Four variants per worker count. The table reports peak anonymous-executable
-residency (the JIT-attributable slice) for all four, plus the two natural
-reduction pairs:
+Two invocations under `fossil table` produce the two draft-facing tables,
+dispatched on the `FOSSIL_TABLE_NAME` env var:
 
-  (stock-base -> aot-restricted)  restricted-execution deployment
-  (stock-full -> aot-full)        opportunistic sharing in a full-tier deployment
+  scaling-jit  -> peak anonymous-executable residency (the JIT-attributable slice)
+  scaling-rss  -> total RSS (dominated by non-JIT per-worker overhead)
 
-A final `slope-mb-per-N` row carries the OLS slope of each column vs N
-(fit on N > 1) so the paper can cite per-runtime marginal cost via cell-value.
+Both share the same four-variant / six-column shape and a final
+`slope-mb-per-N` row carrying the OLS slope of each column vs N (fit on N > 1)
+so the paper can cite per-runtime marginal cost via cell-value."""
 
-Total RSS is dominated by non-JIT per-worker overhead and is emitted to a
-companion JSON so the memory subsection can reference it separately."""
-
+import os
 import re
 import sys
 from pathlib import Path
@@ -84,6 +82,12 @@ def build_rows(by_n, metric_key):
     return rows
 
 
+TABLE_TO_METRIC = {
+    "scaling-jit": "anon",
+    "scaling-rss": "rss",
+}
+
+
 def main():
     data = load_stdin()
 
@@ -99,7 +103,7 @@ def main():
             "rss":  scalar(metric, "peak_rss_mb"),
         }
 
-    anon_columns = [
+    columns = [
         {"key": "workers",              "label": "N",                     "align": "right", "format": "str"},
         {"key": "stock_base_mb",        "label": "stock --no-ion",        "align": "right", "format": "float"},
         {"key": "aot_restricted_mb",    "label": "aot --aot-only",        "align": "right", "format": "float"},
@@ -109,22 +113,24 @@ def main():
         {"key": "full_reduction",       "label": "full-tier Δ",           "align": "right", "format": "percent"},
     ]
 
-    write_typst_table(
-        Path(sys.argv[1]).with_suffix(".json"),
-        columns=anon_columns,
-        rows=build_rows(by_n, "anon"),
-    )
+    table_name = os.environ.get("FOSSIL_TABLE_NAME", "scaling-jit")
+    metric_key = TABLE_TO_METRIC.get(table_name)
+    if metric_key is None:
+        raise SystemExit(
+            f"memory_table: unknown FOSSIL_TABLE_NAME {table_name!r}; "
+            f"expected one of {sorted(TABLE_TO_METRIC)}"
+        )
 
-    # Companion RSS table alongside the primary anon-exec output.
-    rss_path = Path(sys.argv[1]).with_name("memory-table-rss.json")
-    rss_columns = [dict(c) for c in anon_columns]
-    for c in rss_columns[1:]:
-        if c["key"].endswith("_mb"):
-            c["label"] = c["label"] + " (RSS)"
+    if metric_key == "rss":
+        columns = [dict(c) for c in columns]
+        for c in columns[1:]:
+            if c["key"].endswith("_mb"):
+                c["label"] = c["label"] + " (RSS)"
+
     write_typst_table(
-        rss_path,
-        columns=rss_columns,
-        rows=build_rows(by_n, "rss"),
+        Path(sys.argv[1]),
+        columns=columns,
+        rows=build_rows(by_n, metric_key),
     )
 
 

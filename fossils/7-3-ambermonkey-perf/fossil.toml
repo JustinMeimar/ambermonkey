@@ -30,3 +30,7 @@ script = "figures/tier_throughput.py"
 [figures.aot-tradeoff]
 analysis = "speedometer-detail"
 script = "figures/aot_tradeoff.py"
+
+[tables.perf]
+analysis = "speedometer-detail"
+script = "figures/speedometer_table.py"

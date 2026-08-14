@@ -3,9 +3,9 @@
 
 The static sets contain every artifact identity requested by a workload:
 successful Baseline compilations for functions and IC attachments for stub
-bodies. Baseline frequency counts compilation requests, the event an AOT
-Baseline function can satisfy. IC frequency counts post-attachment stub-body
-entries, the execution displaced by an AOT body.
+bodies. Dynamic frequency counts compiled Baseline prologue entries and
+post-attachment IC stub-body entries, the execution handled by the corresponding
+artifacts.
 
 Each observation runs three fresh Raptor browser cycles into one instrumentation
 directory. The reducer therefore supplies their pooled identity sets and
@@ -67,20 +67,24 @@ def main():
 
     ic_requests = collections.Counter()
     ic_entries = collections.Counter()
-    baseline_requests = collections.Counter()
+    baseline_compiles = collections.Counter()
+    baseline_entries = collections.Counter()
 
     for observation in observations:
         payload = observation_output(observation)
         ic_requests.update(counter_at(payload, "ic", "attaches"))
         ic_entries.update(counter_at(payload, "ic", "entered"))
-        baseline_requests.update(counter_at(payload, "baseline", "attaches"))
+        baseline_compiles.update(counter_at(payload, "baseline", "compiles"))
+        baseline_entries.update(counter_at(payload, "baseline", "entered"))
 
     if not ic_requests:
         die("no content-process IC attachment identities")
     if not ic_entries:
         die("no content-process IC entry counts")
-    if not baseline_requests:
+    if not baseline_compiles:
         die("no content-process Baseline compilation identities")
+    if not baseline_entries:
+        die("no content-process Baseline entry counts")
 
     missing_ic_bodies = set(ic_entries) - set(ic_requests)
     if missing_ic_bodies:
@@ -89,16 +93,25 @@ def main():
             "attachment event"
         )
 
+    missing_baseline_functions = set(baseline_entries) - set(baseline_compiles)
+    if missing_baseline_functions:
+        die(
+            f"{len(missing_baseline_functions)} entered Baseline functions "
+            "have no corresponding compilation event"
+        )
+
     json.dump(
         {
             "ic_hashes": encode_set(ic_requests),
             "ic_freqs": encode_counter(ic_entries),
-            "baseline_hashes": encode_set(baseline_requests),
-            "baseline_freqs": encode_counter(baseline_requests),
+            "baseline_hashes": encode_set(baseline_compiles),
+            "baseline_freqs": encode_counter(baseline_entries),
+            "baseline_compile_freqs": encode_counter(baseline_compiles),
             "ic_count": len(ic_requests),
             "ic_entries": sum(ic_entries.values()),
-            "baseline_count": len(baseline_requests),
-            "baseline_requests": sum(baseline_requests.values()),
+            "baseline_count": len(baseline_compiles),
+            "baseline_compiles": sum(baseline_compiles.values()),
+            "baseline_entries": sum(baseline_entries.values()),
         },
         sys.stdout,
     )

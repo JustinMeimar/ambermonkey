@@ -6,13 +6,21 @@ allow_failure = false
 [analyze]
 memory = "analyses/parse_memory.py"
 
-[figures.memory-table]
-analysis = "memory"
-script = "figures/memory_table.py"
-
 [figures.anon-exec-bars]
 analysis = "memory"
 script = "figures/anon_exec_bars.py"
+
+[tables.octane-jit]
+analysis = "memory"
+script = "figures/memory_table.py"
+
+[tables.octane-rss]
+analysis = "memory"
+script = "figures/memory_table.py"
+
+[tables.octane-anon]
+analysis = "memory"
+script = "figures/memory_table.py"
 
 [variables]
 MEASURE  = "python3 /home/justin/spidermonkey/ambermonkey/fossils/7-5-cross-process-memory/scripts/measure_memory.py"

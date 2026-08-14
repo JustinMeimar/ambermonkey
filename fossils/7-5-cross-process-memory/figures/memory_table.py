@@ -9,12 +9,12 @@ Five configurations per benchmark:
     aot       --aot
     aot-only  --aot --aot-only
 
-Three metrics captured; three tables emitted alongside the primary
-output path:
+Three metrics captured; one table per invocation, dispatched on
+`FOSSIL_TABLE_NAME`:
 
-    memory-table.json           full RSS (getrusage ru_maxrss)
-    memory-table-anon.json      private-anonymous RSS (all anon VMAs)
-    memory-table-anon-exec.json JIT slice (anon + executable VMAs)
+    octane-rss   full RSS (getrusage ru_maxrss)
+    octane-anon  private-anonymous RSS (all anon VMAs)
+    octane-jit   JIT slice (anon + executable VMAs)
 
 Each table has rows = benchmarks (Octane order) plus a final `geomean`
 row over the benchmark set. Columns: interp | baseline | stock | aot |
@@ -24,6 +24,7 @@ same-Ion reading, and (iii) the strict-AOT versus runtime-baseline
 reading with Ion asymmetric."""
 
 import math
+import os
 import re
 import sys
 from pathlib import Path
@@ -114,6 +115,13 @@ def columns_for(metric_label):
     ]
 
 
+TABLE_TO_METRIC = {
+    "octane-rss":  ("rss",       "RSS"),
+    "octane-anon": ("anon",      "anon MB"),
+    "octane-jit":  ("anon_exec", "JIT MB"),
+}
+
+
 def main():
     data = load_stdin()
 
@@ -130,21 +138,18 @@ def main():
             "anon_exec": scalar(metric, "peak_anon_exec_mb"),
         }
 
-    base = Path(sys.argv[1])
+    table_name = os.environ.get("FOSSIL_TABLE_NAME", "octane-jit")
+    if table_name not in TABLE_TO_METRIC:
+        raise SystemExit(
+            f"memory_table: unknown FOSSIL_TABLE_NAME {table_name!r}; "
+            f"expected one of {sorted(TABLE_TO_METRIC)}"
+        )
+    metric_key, label = TABLE_TO_METRIC[table_name]
+
     write_typst_table(
-        base.with_suffix(".json"),
-        columns=columns_for("RSS"),
-        rows=build_rows(by_bench, "rss"),
-    )
-    write_typst_table(
-        base.with_name("memory-table-anon.json"),
-        columns=columns_for("anon MB"),
-        rows=build_rows(by_bench, "anon"),
-    )
-    write_typst_table(
-        base.with_name("memory-table-anon-exec.json"),
-        columns=columns_for("JIT MB"),
-        rows=build_rows(by_bench, "anon_exec"),
+        Path(sys.argv[1]),
+        columns=columns_for(label),
+        rows=build_rows(by_bench, metric_key),
     )
 
 
