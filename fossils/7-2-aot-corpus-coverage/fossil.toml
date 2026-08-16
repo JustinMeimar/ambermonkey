@@ -1,5 +1,5 @@
 name = "7-2-aot-corpus-coverage"
-description = "AOT corpus coverage under held-out workloads. Three evaluation populations: eight tp6_test sites (in-domain generalization, one variant each so per-site medians and ranges are recoverable), Speedometer 3.1, and JetStream 3.0. Two directions per population: utilization (what fraction of the packed baseline-function and IC-stub corpus was touched) and workload coverage (what fraction of the distinct CacheIR shapes requested the image was able to serve). Everything is counted at request time in every AOT-using firefox process, so GC-driven stub purges and script teardown cannot lose counts."
+description = "AOT corpus coverage under held-out workloads. Three evaluation populations: the pooled tp6_test suite (eight tp6 sites frozen in 7-1's test.txt, run in a single AOTCoverage dir per iteration so process-level counters union across sites), Speedometer 3.1, and JetStream 3.0. Two directions per population: utilization (what fraction of the packed baseline-function and IC-stub corpus was touched) and workload coverage (what fraction of the distinct CacheIR shapes requested the image was able to serve). Everything is counted at request time in every AOT-using firefox process, so GC-driven stub purges and script teardown cannot lose counts."
 default_iterations = 3
 allow_failure = false
 
@@ -18,10 +18,6 @@ script = "figures/baseline_interpreter_table.py"
 analysis = "coverage"
 script = "figures/ic_table.py"
 
-[tables.ic-per-site-tp6-test]
-analysis = "coverage"
-script = "figures/ic_per_site_tp6_test.py"
-
 [variables]
 # Per-iteration scratch dir. AOTCoverage writes one file per firefox
 # process at RuntimeShutdown, named "$JS_AOT_COVERAGE_OUT.<pid>", so
@@ -36,7 +32,7 @@ INIT = "D=$(mktemp -d /tmp/amber-7-2.XXXXXX)"
 # shell environment mach itself inherits. Kept as one flat string:
 # fossil variable expansion is single-pass, so we can't reference
 # one variable from another.
-RAPTOR = "cd @FIREFOX && @MC_AOT ./mach raptor --binary @BIN_AOT --page-cycles 1 --browser-cycles 1 --setenv JIT_OPTION_useAOTImage=true --setenv JS_AOT_COVERAGE_OUT=$D/cov --setenv MOZ_DISABLE_CONTENT_SANDBOX=1 --setenv MOZ_HEADLESS=1"
+RAPTOR = "cd @FIREFOX && @MC_AOT ./mach raptor --binary @BIN_AOT --page-cycles 1 --browser-cycles 1 --setenv JIT_OPTION_useAOTImage=true --setenv JS_AOT_COVERAGE_OUT=$D/cov --setenv MOZ_DISABLE_CONTENT_SANDBOX=1 --setenv MOZ_HEADLESS=1 --post-startup-delay 1000"
 
 REDUCE = "python3 /home/justin/spidermonkey/ambermonkey/fossils/7-2-aot-corpus-coverage/scripts/reduce_coverage.py $D && rm -rf $D"
 
@@ -44,15 +40,9 @@ REDUCE = "python3 /home/justin/spidermonkey/ambermonkey/fossils/7-2-aot-corpus-c
 jetstream3   = "$INIT && $RAPTOR -t jetstream3   1>&2 && $REDUCE"
 speedometer3 = "$INIT && $RAPTOR -t speedometer3 1>&2 && $REDUCE"
 
-# tp6_test: the eight held-out tp6 sites frozen in 7-1's test.txt. One
-# raptor invocation per site so per-site coverage is directly
-# recoverable, and the reporter can compute a median and range across
-# the eight independent observations rather than a pooled aggregate.
-reddit       = "$INIT && $RAPTOR -t reddit       1>&2 && $REDUCE"
-tumblr       = "$INIT && $RAPTOR -t tumblr       1>&2 && $REDUCE"
-twitch       = "$INIT && $RAPTOR -t twitch       1>&2 && $REDUCE"
-twitter      = "$INIT && $RAPTOR -t twitter      1>&2 && $REDUCE"
-wikia        = "$INIT && $RAPTOR -t wikia        1>&2 && $REDUCE"
-wikipedia    = "$INIT && $RAPTOR -t wikipedia    1>&2 && $REDUCE"
-yahoo-mail   = "$INIT && $RAPTOR -t yahoo-mail   1>&2 && $REDUCE"
-youtube      = "$INIT && $RAPTOR -t youtube      1>&2 && $REDUCE"
+# tp6_test: the eight held-out tp6 sites frozen in 7-1's test.txt. All
+# eight raptor invocations write into the same $D so the reducer sees
+# every AOT-using pid across the whole suite and utilization / attaches
+# / AOT hit rate pool naturally by union+sum, matching the semantics of
+# the suite variants above.
+tp6_test = "$INIT && $RAPTOR -t reddit 1>&2 && $RAPTOR -t tumblr 1>&2 && $RAPTOR -t twitch 1>&2 && $RAPTOR -t twitter 1>&2 && $RAPTOR -t wikia 1>&2 && $RAPTOR -t wikipedia 1>&2 && $RAPTOR -t yahoo-mail 1>&2 && $RAPTOR -t youtube 1>&2 && $REDUCE"

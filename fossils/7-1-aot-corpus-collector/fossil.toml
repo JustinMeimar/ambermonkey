@@ -27,7 +27,7 @@ INIT = "rm -rf @CORPUS/$SITE && mkdir -p @CORPUS/$SITE"
 
 # useAOTImage stays off: the recorder must observe the whole compile
 # stream, and an installed image would skip the compiles it satisfies.
-RECORD = "cd @FIREFOX && @MC_AOT ./mach raptor -t $SITE --binary @BIN_AOT --setenv JIT_OPTION_aotRecordDir=@CORPUS/$SITE --setenv @SANDBOX --setenv MOZ_HEADLESS=1 --page-cycles 1 --browser-cycles 1"
+RECORD = "cd @FIREFOX && @MC_AOT ./mach raptor -t $SITE --binary @BIN_AOT --setenv JIT_OPTION_aotRecordDir=@CORPUS/$SITE --setenv @SANDBOX --setenv MOZ_HEADLESS=1 --page-cycles 1 --browser-cycles 1 --post-startup-delay 1000"
 
 EMIT = "printf '{\"site\":\"%s\",\"blfun\":%s,\"ic\":%s,\"bytes\":%s}\\n' $SITE $(ls @CORPUS/$SITE | grep -c '^blfun-') $(ls @CORPUS/$SITE | grep -c '^ic-') $(du -sb @CORPUS/$SITE | cut -f1)"
 
