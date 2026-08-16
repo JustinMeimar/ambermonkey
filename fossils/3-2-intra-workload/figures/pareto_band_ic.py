@@ -1,4 +1,5 @@
 #!/home/justin/tools/fossil/figures/.venv/bin/python
+"""Ranked IC-body entry CDF band across the TP6 subset."""
 import sys
 
 from fossil_figures import FigureData, apply_style, load_stdin, ranked_cdf_band

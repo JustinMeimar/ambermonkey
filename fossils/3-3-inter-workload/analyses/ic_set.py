@@ -1,17 +1,5 @@
 #!/usr/bin/env python3
-"""Pool content-process Baseline and IC demand across repetitions.
-
-The static sets contain every artifact identity requested by a workload:
-successful Baseline compilations for functions and IC attachments for stub
-bodies. Dynamic frequency counts compiled Baseline prologue entries and
-post-attachment IC stub-body entries, the execution handled by the corresponding
-artifacts.
-
-Each observation runs three fresh Raptor browser cycles into one instrumentation
-directory. The reducer therefore supplies their pooled identity sets and
-frequency maps in one JSON payload. Supporting a complete results record here
-also keeps the analyzer convenient for direct validation outside Fossil.
-"""
+"""Pool content-process Baseline and IC demand across repetitions."""
 
 import collections
 import json

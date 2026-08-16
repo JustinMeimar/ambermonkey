@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
-"""Break the JIT memory summary down for intro-I / background-II /
-motivation-III number slots.
-
-Input:  fossil observation JSON on stdin. `stdout` is the JSON emitted
-        by scripts/emit_summary.py.
-Output: analysis JSON on stdout with per-checkpoint totals plus a
-        peak-checkpoint breakdown suitable for the paper's tables.
-"""
+"""Break the JIT memory summary down into per-checkpoint totals and a peak-checkpoint breakdown."""
 
 import collections
 import json

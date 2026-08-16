@@ -1,8 +1,5 @@
 #!/home/justin/tools/fossil/figures/.venv/bin/python
-"""Horizontal bar chart of AOT indirection overhead. For each workload the
-aot-oracle variant's score is expressed as a ratio to its baseline variant
-(1.0 = no overhead, <1.0 = slower under --aot-only). Error bars are
-first-order propagated from the per-variant stddevs."""
+"""Horizontal bar chart of AOT indirection overhead relative to the baseline variant."""
 
 import math
 import sys

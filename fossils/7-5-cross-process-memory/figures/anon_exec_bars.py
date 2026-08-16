@@ -1,19 +1,5 @@
 #!/home/justin/tools/fossil/figures/.venv/bin/python
-"""Grouped bar chart: peak per-process anonymous-executable RSS across
-the Octane suite, four plotted configurations per benchmark (baseline,
-stock, aot, aot-only). The interp configuration is recorded but
-omitted from the plot because its anon-exec is zero by construction.
-Groups sorted by the runtime-baseline column descending so the largest
-per-process JIT pools appear first and the AmberMonkey bars next to
-each show the displacement.
-
-Two output files, chosen by the analysis metric:
-
-    anon-exec-bars.pdf   JIT slice (anon + executable VMAs)
-    anon-bars.pdf        all private-anonymous RSS
-
-Both are emitted alongside the output path fossil supplies. Absolute
-MB on the Y-axis so reviewers can cite the numbers directly."""
+"""Grouped bar chart of peak per-process anonymous-executable RSS across the Octane suite."""
 
 import re
 import sys
@@ -40,8 +26,6 @@ COLORS = {
     "aot":      "#44AF69",
     "aot-only": "#2E86AB",
 }
-# interp (--no-jit-backend) is omitted from the plot: anon-exec is zero
-# by construction for every benchmark. Documented in the figure caption.
 GROUP_WIDTH = 0.86
 
 

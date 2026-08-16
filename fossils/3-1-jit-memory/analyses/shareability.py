@@ -1,36 +1,8 @@
 #!/usr/bin/env python3
-"""Peak-snapshot JIT residency, split into three bands per class:
-
-  currently_shared   bytes that are already bit-identical across procs.
-                     If pages were mapped shared right now, these bytes
-                     would collapse. In stock Firefox the actual mmap is
-                     MAP_PRIVATE so this measures the hash-identity
-                     ceiling, not achieved COW savings.
-
-  achievable_shared  same source (IR / template / build-hash constant)
-                     across procs but currently different compiled bytes
-                     because the codegen embeds process-specific
-                     addresses. Under a position-independent AOT scheme
-                     these would collapse too.
-
-  unique             one representative per distinct source. Irreducible
-                     residue: the class has this many distinct sources,
-                     each of which must live in memory at least once.
-
-Ion is excluded from the three-band model on purpose: we don't emit
-hash instrumentation for it. Its live bytes are still reported as a
-class total (for JIT-memory accounting text) but there is no per-band
-split.
-
-Uniform decomposition. Every class runs through `three_band(instances)`
-with no per-class special-casing beyond the ownership tag. Any peak
-snapshot with live bytes in a class the analyzer has no rule for
-crashes loudly rather than dropping silently.
-
-Output: {"peak_checkpoint": ..., "n_procs": ...,
-         "artifacts": [{name, total, currently_shared,
-                        achievable_shared, unique}, ...],
-         "ion_total": <bytes>}
+"""Peak-snapshot JIT residency per class, split into three bands:
+currently_shared (already bit-identical across procs), achievable_shared
+(same source but process-specific addresses), unique (irreducible residue).
+Ion is reported as a class total only; there is no per-band hash instrumentation for it.
 """
 
 import collections

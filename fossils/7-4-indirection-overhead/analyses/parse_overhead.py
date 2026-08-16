@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Parse a JetStream/Speedometer run to score the AOT-oracle vs baseline overhead."""
 
 import json
 import os

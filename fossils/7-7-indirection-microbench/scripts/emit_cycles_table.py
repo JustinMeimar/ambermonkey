@@ -1,23 +1,7 @@
 #!/usr/bin/env python3
-"""Bypass table script for 7-7: reads records/ directly, skips bad obs.
-
-The regular fossil pipeline (analyses/parse_cycles.py -> figures/
-cycles_table.py) refuses to aggregate if any observation has empty
-stdout, because perf occasionally produces no JSON and a silent skip
-would mask a real failure. Some pre-existing 7-7 records contain a
-handful of such observations from an early jsshell path, so aggregating
-them at all requires a script that tolerates the gap.
-
-This emitter walks records/*/{manifest.json,results.json}, groups
-observations by manifest variant (<bench>-<build>), parses each
-non-empty perf ndjson stdout, and averages cycles_per_iter /
-insns_per_iter / ipc per (bench, build). Output shape mirrors
-figures/cycles_table.py so downstream typst readers stay unchanged.
-
-Empty or non-parseable observations are counted and reported in the
-JSON footer (skipped_observations, empty_observations) so a reader can
-tell how much data was dropped.
-"""
+"""Bypass table script: reads records/ directly, tolerates empty perf observations.
+The strict pipeline (parse_cycles.py -> cycles_table.py) refuses on any empty stdout;
+some legacy records have such gaps. Output shape mirrors cycles_table.py."""
 
 import json
 import math

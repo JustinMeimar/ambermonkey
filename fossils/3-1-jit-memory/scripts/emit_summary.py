@@ -1,32 +1,5 @@
 #!/usr/bin/env python3
-"""Reduce a JS_INSTR_DIR of per-process JSONL into a compact summary.
-
-The reduced per-proc-at-peak record is a uniform list of artifacts, each
-carrying (owner, source_sha, code_sha, bytes). Downstream shareability
-analysis applies a single three-band decomposition (currently_shared /
-achievable_shared / unique) with no per-class special-casing.
-
-Source-of-truth per owner:
-  baseline-interpreter, trampoline, shared-ic:
-      source_sha = SHA of a per-owner constant string (all instances of
-      a given engine-blob class in the same firefox binary share source
-      by construction). code_sha from jitcode-create.
-  baseline-script:
-      source_sha = semantic_id, code_sha = code_id from baseline-compile.
-  baseline-ic:
-      source_sha (CacheIR bytecode SHA) and code_sha (compiled body SHA)
-      from ic-body-emit. jitcode-create supplies live bytes.
-  regexp:
-      source_sha (pattern+flags SHA) and code_sha (compiled bytes SHA)
-      from regexp-emit.
-  ion:
-      Excluded from the three-band model. Only its total bytes are
-      carried (via jitcode-create live tally) for JIT-memory accounting.
-
-Crashes loudly on any invariant violation.
-
-Usage: emit_summary.py DIR   (writes JSON to stdout)
-"""
+"""Reduce a JS_INSTR_DIR of per-process JSONL into a compact JIT-memory summary."""
 
 import collections
 import hashlib

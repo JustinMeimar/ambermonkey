@@ -1,5 +1,5 @@
 name = "7-6-shell-memory-scaling"
-description = "Per-runtime private JIT memory scaling of the JS shell with N in-process worker JSRuntimes. Four variants at each N: baseline-only stock (--no-ion), full-tier stock (default flags), AmberMonkey restricted (--aot --aot-only --no-ion), and AmberMonkey with full runtime tiering (--aot). The two natural pairs are (stock-base, aot-restricted), which measures the restricted-execution deployment, and (stock-full, aot-full), which measures opportunistic AOT sharing in an unrestricted deployment."
+description = "Per-runtime private JIT memory of the jsshell with N in-process worker JSRuntimes. Four configs at each N: stock-base (--no-ion), stock-full (default), aot-restricted (--aot --aot-only --no-ion), aot-full (--aot)."
 default_iterations = 3
 allow_failure = false
 

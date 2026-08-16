@@ -1,19 +1,5 @@
 #!/usr/bin/env python3
-"""Run the given command; poll /proc/<pid>/smaps for peak resident sizes
-and emit three grep-friendly key=value pairs on stderr; propagate exit
-code.
-
-Emitted metrics (all kilobytes):
-    peak_rss_kb         from getrusage(RUSAGE_CHILDREN).ru_maxrss
-    peak_anon_kb        sum(Rss) over anonymous VMAs (path empty)
-    peak_anon_exec_kb   sum(Rss) over anonymous+executable VMAs
-
-Anonymous VMAs are the pages the process privately allocates via mmap
-(SpiderMonkey's heap arenas, GC nursery, and ExecutableAllocator JIT
-pools all land here); file-backed pages such as the .text.aot image are
-excluded, so this is the "cost you pay per process" metric that
-amortization of shared file-backed pages does not touch.
-"""
+"""Run a command and emit peak_rss_kb / peak_anon_kb / peak_anon_exec_kb on stderr."""
 
 import re
 import resource

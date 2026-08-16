@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Parse per-worker peak RSS and anon-exec residency from a shell scaling observation."""
 
 import json
 import os

@@ -1,35 +1,28 @@
 name = "3-2-intra-workload"
-description = "Intra-workload concentration across the first eight alphabetical desktop TP6 sites: content-process IC bodies ranked by real stub-entry counts over three cold page loads."
+description = "Intra-workload IC concentration across the first eight alphabetical desktop TP6 sites. Content-process IC bodies ranked by stub-entry counts over three cold page loads."
 default_iterations = 1
 allow_failure = false
 
 [analyze]
-ic-rank = "analyses/ic_rank.py"
+ic-rank      = "analyses/ic_rank.py"
 ic-top-table = "analyses/ic_top_table.py"
 
 [figures.pareto-band-ic]
 analysis = "ic-rank"
-script = "figures/pareto_band_ic.py"
+script   = "figures/pareto_band_ic.py"
 
 [tables.concentration]
 analysis = "ic-rank"
-script = "figures/concentration_summary.py"
+script   = "figures/concentration_summary.py"
 
 [variables]
-# One instrumentation directory per TP6 site. Raptor receives these values
-# through --setenv so every Firefox process inherits the same sink directory.
-# The reducer retains content-process guest records, excludes self-hosted code,
-# and fails closed on missing or contradictory source classification.
-INIT = "D=$(mktemp -d /tmp/amber-3-2.XXXXXX)"
-EMIT = "python3 /home/justin/spidermonkey/ambermonkey/fossils/3-2-intra-workload/scripts/emit_ranks.py \"$D\" && rm -rf \"$D\""
-# Raptor ignores --browser-cycles for warm pageload tests. Cold mode makes
-# each cycle a fresh browser process; all three write into D and are pooled.
+INIT   = "D=$(mktemp -d /tmp/amber-3-2.XXXXXX)"
+EMIT   = "python3 /home/justin/spidermonkey/ambermonkey/fossils/3-2-intra-workload/scripts/emit_ranks.py \"$D\" && rm -rf \"$D\""
+# Raptor ignores --browser-cycles for warm pageload tests. --cold makes each cycle
+# a fresh browser process; all three write into $D and pool.
 RAPTOR = "cd @FIREFOX && @MC_BROWSER ./mach raptor -t $SITE --binary @BIN_RELEASE --setenv JS_INSTR=all --setenv JS_INSTR_DIR=$D --setenv JS_INSTR_MODE=structural --setenv JS_INSTR_RUN_ID=$(basename $D) --setenv @SANDBOX --setenv MOZ_HEADLESS=1 --cold --page-cycles 1 --browser-cycles 3 --post-startup-delay 1000"
 
 [variants]
-# Compact, non-outcome-selected sample: the first eight desktop TP6 sites in
-# alphabetical order. This is the same workload set and protocol as section
-# 3.3, allowing the two sections to share a measurement basis.
 amazon      = "SITE=amazon;      $INIT && $RAPTOR 1>&2 && $EMIT"
 bing-search = "SITE=bing-search; $INIT && $RAPTOR 1>&2 && $EMIT"
 buzzfeed    = "SITE=buzzfeed;    $INIT && $RAPTOR 1>&2 && $EMIT"

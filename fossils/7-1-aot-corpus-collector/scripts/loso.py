@@ -1,34 +1,5 @@
 #!/usr/bin/env python3
-"""Leave-one-site-out identity coverage over tp6_train.
-
-For each training site w, form a candidate corpus from the other 23
-training sites and measure the fraction of w's unique identities that
-the candidate covers. Reported separately for IC bodies and for
-baseline functions, so the design decision to include the first class
-and exclude the second is a direct read of the same measurement.
-
-Static identity coverage only. Dynamic entry coverage (fraction of w's
-recorded compile requests whose identity is in the candidate corpus)
-requires per-identity request counts the recorder does not emit -- it
-writes one file per identity via O_EXCL and treats subsequent EEXISTs
-as success, so multiplicity is not preserved on disk. Adding a compile
-counter is a recorder-side change out of scope for this fossil; the
-static number is already the evidence the design section needs.
-
-Emits:
-
-    {
-      "kinds": {
-        "ic": {
-          "targets": [
-            {"site": "amazon", "target_count": N, "covered": M, "pct": P},
-            ...
-          ],
-          "median_pct": ..., "min_pct": ..., "max_pct": ...
-        },
-        "blfun": { ... }
-      }
-    }
+"""Leave-one-site-out identity coverage over tp6_train, per IC/blfun.
 
 Invoked as `fossil table loso`; arg 1 is the destination path.
 """

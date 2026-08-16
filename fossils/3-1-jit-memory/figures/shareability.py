@@ -1,18 +1,5 @@
 #!/home/justin/tools/fossil/figures/.venv/bin/python
-"""Peak-snapshot JIT residency, one horizontal bar per artifact class,
-split into three bands: currently_shared, achievable_shared, unique.
-
-- currently_shared: bit-identical bytes across procs today (code_sha
-  collision). CoW ceiling for stock Firefox even without any codegen
-  changes.
-- achievable_shared: same source (IR / template / build-hash) but
-  different compiled bytes today because codegen embeds process-
-  specific addresses. AmberMonkey's PIC target.
-- unique: one representative per distinct source. Irreducible.
-
-Ion is excluded on purpose (no hash instrumentation; its total lives in
-the caption text).
-"""
+"""Peak-snapshot JIT residency per artifact class, split into currently_shared / achievable_shared / unique bands."""
 
 import json
 import sys
@@ -34,9 +21,9 @@ CODE = {
     "regexp":                       "Re",
 }
 
-C_CURRENT = "#2E86AB"   # bit-identical already
-C_ACHIEVE = "#F6AE2D"   # same source, different bytes
-C_UNIQUE  = "#C73E1D"   # irreducible
+C_CURRENT = "#2E86AB"
+C_ACHIEVE = "#F6AE2D"
+C_UNIQUE  = "#C73E1D"
 
 
 def die(msg):

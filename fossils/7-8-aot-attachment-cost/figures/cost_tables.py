@@ -1,4 +1,5 @@
 #!/home/justin/tools/fossil/figures/.venv/bin/python
+"""Emit AOT attachment cost tables (startup timings and per-phase counters)."""
 
 import json
 import sys

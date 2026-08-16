@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Baseline-interpreter coverage table. The image ships exactly one
-interp blob and every AOT-using process loads it as part of image
-attach; there is nothing per-blob to accumulate. Corpus size is
-hardcoded here rather than plumbed through AOTCoverage.cpp -- the
-runtime already emits n_procs, which is equivalent to "how many
-processes loaded this blob"."""
+"""Baseline-interpreter coverage table."""
 
 import json
 import pathlib

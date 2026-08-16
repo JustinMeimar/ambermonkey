@@ -1,15 +1,5 @@
 #!/home/justin/tools/fossil/figures/.venv/bin/python
-"""Shell memory scaling with worker count.
-
-Four variants: baseline-only stock (--no-ion), full-tier stock (default),
-AmberMonkey restricted (--aot --aot-only --no-ion), AmberMonkey full-tier
-(--aot). Solid lines are peak anonymous-executable residency (the
-JIT-attributable slice, isolated from the file-backed .text.aot section);
-dashed lines are peak total RSS.
-
-Two natural pairs read from the figure: (stock-base, aot-restricted) for
-the restricted-execution deployment, and (stock-full, aot-full) for
-opportunistic sharing when runtime tiering is left enabled."""
+"""Shell memory scaling with worker count across four stock/AmberMonkey variants."""
 
 import re
 import sys

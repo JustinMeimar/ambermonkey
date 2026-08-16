@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Parse peak RSS / anon / anon-exec memory metrics from a shell-memory observation."""
 
 import json
 import os

@@ -1,5 +1,5 @@
 name = "3-3-inter-workload"
-description = "Inter-workload overlap across the first eight alphabetical TP6 sites: content-process Baseline functions and IC bodies, static Jaccard, and directional function-entry and stub-entry coverage."
+description = "Inter-workload overlap across the first eight alphabetical TP6 sites: content-process Baseline functions and IC bodies, static Jaccard, directional function-entry and stub-entry coverage."
 default_iterations = 1
 allow_failure = false
 
@@ -8,30 +8,19 @@ artifact-sets = "analyses/ic_set.py"
 
 [figures.artifact-overlap]
 analysis = "artifact-sets"
-script = "figures/ic_jaccard.py"
+script   = "figures/ic_jaccard.py"
 
-# Reads records/ directly (does not consume analysis columns). Emits the
-# per-target coverage/jaccard summary the paper's `interworkload-coverage`
-# table cites. Records must be from the 8-site tp6 set enumerated in
-# scripts/emit_summary_json.py (SITES tuple); if they are not, running
-# this table will fail with "missing sites: ..." and 3-3 needs a bury pass.
+# Reads records/ directly; asserts the 8-site set enumerated in scripts/emit_summary_json.py.
 [tables.coverage]
 script = "scripts/emit_summary_json.py"
 
 [variables]
-# One instrumentation directory per TP6 site. Raptor receives these values
-# through --setenv so every Firefox process inherits the same sink directory;
-# the reducer retains content-process records and discards browser chrome.
-INIT = "D=$(mktemp -d /tmp/amber-3-3.XXXXXX)"
-EMIT = "python3 /home/justin/spidermonkey/ambermonkey/fossils/3-3-inter-workload/scripts/emit_ranks.py \"$D\" && rm -rf \"$D\""
-# Raptor ignores --browser-cycles for warm pageload tests. Cold mode makes
-# each cycle a fresh browser process; all three write into D and are pooled.
+INIT   = "D=$(mktemp -d /tmp/amber-3-3.XXXXXX)"
+EMIT   = "python3 /home/justin/spidermonkey/ambermonkey/fossils/3-3-inter-workload/scripts/emit_ranks.py \"$D\" && rm -rf \"$D\""
+# --cold makes each cycle a fresh browser process; all three write into $D and pool.
 RAPTOR = "cd @FIREFOX && @MC_BROWSER ./mach raptor -t $SITE --binary @BIN_RELEASE --setenv JS_INSTR=lifecycle,ic,demand,baseline --setenv JS_INSTR_DIR=$D --setenv JS_INSTR_MODE=demand --setenv JS_INSTR_RUN_ID=$(basename $D) --setenv @SANDBOX --setenv MOZ_HEADLESS=1 --cold --page-cycles 1 --browser-cycles 3 --post-startup-delay 1000"
 
 [variants]
-# For a compact, non-outcome-selected matrix, use the first eight desktop TP6
-# sites in alphabetical order. Each variant runs one replayed site so the
-# analysis can recover directional cross-workload coverage.
 amazon         = "SITE=amazon;         $INIT && $RAPTOR 1>&2 && $EMIT"
 bing-search    = "SITE=bing-search;    $INIT && $RAPTOR 1>&2 && $EMIT"
 buzzfeed       = "SITE=buzzfeed;       $INIT && $RAPTOR 1>&2 && $EMIT"

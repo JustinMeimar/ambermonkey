@@ -1,10 +1,5 @@
 #!/home/justin/tools/fossil/figures/.venv/bin/python
-"""Emit the Speedometer 3.1 tier-ladder table.
-
-One row per variant with mean score and cross-run stddev, plus ratios
-against interp-only (headline speedup) and default (drop-in fraction).
-Top-level scalar fields carry the same headline ratios so the paper's
-constants layer can cite them without a row/column lookup."""
+"""Emit the Speedometer 3.1 tier-ladder table."""
 
 import json
 import os

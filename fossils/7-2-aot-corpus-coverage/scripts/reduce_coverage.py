@@ -1,48 +1,5 @@
 #!/usr/bin/env python3
-"""Aggregate per-pid AOT coverage dumps from one iteration into a
-single JSON summary on stdout.
-
-Each dump is one process's view -- the parent and every AOT-using
-content process contribute one. The corpus size is a build-time
-property of the AOT image so it is identical across dumps and taken
-from the first; counters are summed and shape sets are unioned.
-
-Two coverage directions are reported and they answer different
-questions:
-
-    utilization  used blobs / corpus size. How much of what we shipped
-                 earned its bytes.
-    workload     distinct CacheIR shapes the image served / distinct
-                 shapes the workload requested. How well a corpus
-                 recorded elsewhere generalizes to this workload.
-
-Shape identity is a content hash over the CacheIR bytes, so it is
-comparable across processes and the union is meaningful.
-
-Emitted schema (leaves become Scalars in the fossil analysis fold):
-
-    {
-      "utilization": {
-        "baseline_functions": {"used": N, "total": T, "pct": P},
-        "ic_stubs":           {"used": N, "total": T, "pct": P}
-      },
-      "requests": {
-        "baseline_functions": {"aot_hit": N, "compiled": M,
-                               "total": T, "aot_hit_pct": P},
-        "ic_stubs":           {"aot_hit": N, "zone_cache_hit": Z,
-                               "compiled": M, "total": T,
-                               "aot_hit_pct": P}
-      },
-      "workload": {
-        "ic_shapes_requested": N,
-        "ic_shapes_served": M,
-        "ic_shapes_raced": R,
-        "coverage_pct": P
-      },
-      "self_hosted_used_baseline": N,
-      "n_procs": <count of coverage files parsed>
-    }
-"""
+"""Aggregate per-pid AOT coverage dumps from one iteration into a single JSON summary."""
 
 import glob
 import json

@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Aggregate cpstartup timing and per-phase counters from a run_block.py observation."""
 
 import json
 import os

@@ -1,12 +1,4 @@
-"""Shared helpers for the coverage figure scripts.
-
-Coverage now comes from three populations, each a single fossil
-variant so pooling happens at reduce_coverage time (union+sum across
-every AOT-using process the population produced): the pooled tp6_test
-suite (eight held-out tp6 sites frozen in 7-1's test.txt),
-Speedometer 3.1, and JetStream 3.0. Each table is one row per metric,
-one scalar per column, mirroring the shape the paper wanted.
-"""
+"""Shared helpers for the coverage figure scripts."""
 
 import json
 import pathlib

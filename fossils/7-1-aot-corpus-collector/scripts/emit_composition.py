@@ -1,27 +1,7 @@
 #!/usr/bin/env python3
-"""Emit the paper's corpus-composition table and its headline scalars.
-
-Reads the per-site subdirs the collector wrote under $CORPUS, the sites
-listed in train.txt, and the self-hosted dir. Produces:
-
-  * scalars used by the paper's prose:
-      train_site_count, test_site_count, total_site_count,
-      self_hosted_function_count,
-      train_union_ic_count, train_union_ic_bytes,
-      train_singleton_ic_count, train_singleton_ic_bytes,
-      train_recurrent_ic_count, train_recurrent_ic_bytes
-  * a threshold sweep as a `{threshold, ic_stubs, ic_kb}` table:
-    what a prevalence-pruned corpus would look like at each cutoff.
-    This is diagnostic only; the shipped corpus is the union (threshold=0).
-    The paper cites specific rows to show that the singleton tail is
-    cheap enough that pruning is unnecessary.
-
-Column names (ic_stubs, ic_kb) are preserved from the earlier schema so
-`cell-value("7-1-selection.json", <threshold>, "ic_stubs")` in the paper
-constants keeps working.
-
-Invoked as `fossil table composition`; arg 1 is the destination path.
-"""
+"""Corpus-composition scalars plus a prevalence-pruning threshold sweep.
+Reads $CORPUS per-site subdirs, train.txt, and the self-hosted dir.
+Invoked as `fossil table composition`; arg 1 is the destination path."""
 
 import json
 import sys

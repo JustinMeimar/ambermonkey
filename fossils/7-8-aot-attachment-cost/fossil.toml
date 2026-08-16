@@ -1,5 +1,5 @@
 name = "7-8-aot-attachment-cost"
-description = "Randomized blocked cpstartup measurement of AOT image attachment, metadata reconstruction, residual compilation, and end-to-end content-process startup"
+description = "Blocked cpstartup measurement of AOT image attachment, metadata reconstruction, residual compilation, and end-to-end content-process startup."
 default_iterations = 10
 allow_failure = false
 workdir = "."

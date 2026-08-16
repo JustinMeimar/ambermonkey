@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Emit a Firefox JIT allocation summary from AWSY perfherder and JIT-instrumentation snapshots."""
 
 import collections
 import glob

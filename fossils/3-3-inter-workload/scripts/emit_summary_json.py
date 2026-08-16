@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
-"""Summarise 3-3 inter-workload records into a paper-consumable JSON.
-
-Reads the latest record per configured TP6 site under records/, computes
-static Jaccard and directional coverage matrices, and emits medians plus
-per-target ranges. When invoked via `fossil table coverage` the target
-path arrives as argv[1]; run without arguments to write to stdout for
-ad-hoc inspection.
-"""
+"""Summarise 3-3 inter-workload records into a paper-consumable JSON."""
 
 import json
 import os

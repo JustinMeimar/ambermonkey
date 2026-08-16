@@ -1,5 +1,5 @@
 name = "7-4-indirection-overhead"
-description = "Quantify AOT indirection cost on JetStream 3 and Speedometer 3. Both variants use the AOT-enabled browser and disable Ion, wasm, and native regexp; the only axis is direct runtime baseline codegen vs AOT-loaded baseline with pinned-register indirection. --aot-only routes any AOT miss to the interpreter, so an oracle corpus (workloads recorded then embedded) is required to avoid contaminating the measurement with fallback-stub cost."
+description = "AOT indirection cost on JetStream 3 and Speedometer 3: runtime baseline codegen vs AOT-loaded baseline with pinned-register indirection. Requires an oracle corpus so --aot-only misses do not contaminate the measurement."
 default_iterations = 1
 allow_failure = false
 

@@ -1,11 +1,5 @@
 #!/home/justin/tools/fossil/figures/.venv/bin/python
-"""Three-panel heatmap for the alphabetical eight-workload TP6 subset.
-
-Panel (a) uses the upper triangle for IC-body Jaccard and the lower triangle
-for Baseline-function Jaccard. Panels (b) and (c) are full directional
-matrices: row A is the candidate corpus and column B is the target workload.
-Every panel uses the same blue-to-red scale and every cell is annotated.
-"""
+"""Three-panel heatmap of IC/Baseline overlap across the eight-workload TP6 subset."""
 
 import sys
 from decimal import ROUND_DOWN, Decimal

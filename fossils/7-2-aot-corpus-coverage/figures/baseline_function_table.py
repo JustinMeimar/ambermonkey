@@ -1,8 +1,5 @@
 #!/usr/bin/env python3
-"""Baseline-function coverage table. Metric names are unqualified -- the
-table title carries the artifact context. tp6-Test cells are the median
-across the eight held-out site variants with the min-max range in
-brackets; suite cells are scalars."""
+"""Baseline-function coverage table."""
 
 from _common import emit_aggregate
 

@@ -1,19 +1,5 @@
 #!/usr/bin/env python3
-"""Describe one or more selected corpora as typst-ready tables on stdout.
-
-Answers what a packed image is actually made of, and how two candidate
-corpora differ as sets. Artifact names are identity hashes, so set
-difference between two corpus dirs is exact and needs no content
-comparison.
-
-Each corpus is given as LABEL=DIR. Pass --image LABEL=PATH to attach the
-packed AOTImage.inc that corpus produced, so the shipped byte count sits
-next to the inputs that explain it.
-
-Emits {"composition": ..., "overlap": ...}, each in the
-{"columns": [...], "rows": [[...]]} shape the typst json-table loader
-reads. Values stay numeric; formatting belongs in the document.
-"""
+"""Describe one or more selected corpora as typst-ready composition and overlap tables."""
 
 import argparse
 import json

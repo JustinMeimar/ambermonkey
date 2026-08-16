@@ -1,27 +1,6 @@
 #!/home/justin/tools/fossil/figures/.venv/bin/python
-"""Emit per-benchmark peak-memory tables for the Octane suite.
-
-Five configurations per benchmark:
-
-    interp    --no-jit-backend
-    baseline  --no-ion
-    stock     (default)
-    aot       --aot
-    aot-only  --aot --aot-only
-
-Three metrics captured; one table per invocation, dispatched on
-`FOSSIL_TABLE_NAME`:
-
-    octane-rss   full RSS (getrusage ru_maxrss)
-    octane-anon  private-anonymous RSS (all anon VMAs)
-    octane-jit   JIT slice (anon + executable VMAs)
-
-Each table has rows = benchmarks (Octane order) plus a final `geomean`
-row over the benchmark set. Columns: interp | baseline | stock | aot |
-aot-only | (aot vs stock) | (aot-only vs stock) | (aot-only vs baseline).
-The three reductions give (i) the drop-in reading, (ii) the strict-AOT
-same-Ion reading, and (iii) the strict-AOT versus runtime-baseline
-reading with Ion asymmetric."""
+"""Per-benchmark peak-memory tables for Octane. Dispatches on FOSSIL_TABLE_NAME:
+octane-rss (getrusage), octane-anon (all anon VMAs), octane-jit (anon+exec)."""
 
 import math
 import os

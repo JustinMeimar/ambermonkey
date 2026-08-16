@@ -1,10 +1,5 @@
 #!/home/justin/tools/fossil/figures/.venv/bin/python
-"""Cross-workload concentration summary for the intra-workload paragraph.
-
-Emits a typst-loadable table with one row per site plus median / min / max
-summary rows. Individual cells are read from the paper prose via
-cell-from-table("intra-concentration.json", <row>, <col>).
-"""
+"""Cross-workload concentration summary table for the intra-workload paragraph."""
 
 import statistics
 import sys
@@ -39,8 +34,6 @@ def main():
     rows.append(["median", statistics.median(shares), int(statistics.median(body_counts))])
     rows.append(["min", min(shares), min(body_counts)])
     rows.append(["max", max(shares), max(body_counts)])
-    # Analysis parameters (top-fraction ranked; entry-coverage threshold).
-    # Encoded in table cells so the paper can cite them via cell-value.
     rows.append(["params", top_fraction, int(round(coverage_fraction * 100))])
 
     write_typst_table(

@@ -1,15 +1,5 @@
 #!/home/justin/tools/fossil/figures/.venv/bin/python
-"""Emit a per-worker memory table.
-
-Two invocations under `fossil table` produce the two draft-facing tables,
-dispatched on the `FOSSIL_TABLE_NAME` env var:
-
-  scaling-jit  -> peak anonymous-executable residency (the JIT-attributable slice)
-  scaling-rss  -> total RSS (dominated by non-JIT per-worker overhead)
-
-Both share the same four-variant / six-column shape and a final
-`slope-mb-per-N` row carrying the OLS slope of each column vs N (fit on N > 1)
-so the paper can cite per-runtime marginal cost via cell-value."""
+"""Emit a per-worker memory table (scaling-jit or scaling-rss, selected by FOSSIL_TABLE_NAME)."""
 
 import os
 import re

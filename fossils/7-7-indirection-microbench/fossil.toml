@@ -1,5 +1,5 @@
 name = "7-7-indirection-microbench"
-description = "Per-iteration user-mode cycle cost of jsshell hot loops across build cells per microbench: default (non-AOT, native baseline codegen, no indirection), opt (AOT with perf 1/n, 3/n, 5/n, 6/n applied), no-opt (AOT with those four commits reverted). Variant naming convention is <bench>-<build>. This session only runs default and opt; no-opt variants are kept for interrupt-check as a placeholder and can be re-enabled once the no-opts build is available. Microbenches split into 'targeted' (each hits a specific perf commit's hot site) and 'control' (exercises IC paths none of the four perf commits touch, so opt-vs-default gap is a floor measurement). Targeted: interrupt-check (perf 1/n, 6/n via loop back-edge), stack-check (perf 1/n via function-entry stack limit), prebarrier (perf 1/n via SetProp pre-barrier guard), vm-call (perf 5/n via callVMInternal), abi-call (perf 3/n via callWithABI to a local ABI fn). Control: arith (BinOp), prop-load (GetProp IC), array-load (GetElem IC)."
+description = "User-mode cycle cost of jsshell hot loops across build cells per microbench: default (non-AOT, native codegen) vs opt (AOT with perf commits 1/n,3/n,5/n,6/n). Targeted benches hit specific perf commits; controls exercise IC paths none of the four touch."
 default_iterations = 30
 allow_failure = false
 
@@ -8,20 +8,17 @@ cycles = "analyses/parse_cycles.py"
 
 [figures.cycles-bars]
 analysis = "cycles"
-script = "figures/cycles_bars.py"
+script   = "figures/cycles_bars.py"
 
-# Bypasses the strict analyses/parse_cycles.py path (which refuses to
-# aggregate when any observation has empty stdout) so we can emit a
-# best-effort table even with the small handful of legacy records where
-# perf produced no JSON. Reads records/ directly, skips bad observations,
-# and reports the drop counts in the emitted JSON.
+# Bypasses parse_cycles.py (which refuses when any observation has empty stdout)
+# so the table survives legacy records where perf produced no JSON.
 [tables.cycles]
 script = "scripts/emit_cycles_table.py"
 
 [variables]
-JSSHELL_DEFAULT = "@FIREFOX/build-shell-release/dist/bin/js"
-JSSHELL_OPT     = "@FIREFOX/build-shell-release-aot/dist/bin/js"
-JSSHELL_NO_OPT  = "@FIREFOX/build-shell-release-aot-noopts/dist/bin/js"
+JSSHELL_DEFAULT       = "@FIREFOX/build-shell-release/dist/bin/js"
+JSSHELL_OPT           = "@FIREFOX/build-shell-release-aot/dist/bin/js"
+JSSHELL_NO_OPT        = "@FIREFOX/build-shell-release-aot-noopts/dist/bin/js"
 BENCH_INTERRUPT_CHECK = "/home/justin/spidermonkey/ambermonkey/fossils/7-7-indirection-microbench/microbenches/interrupt_check.js"
 BENCH_STACK_CHECK     = "/home/justin/spidermonkey/ambermonkey/fossils/7-7-indirection-microbench/microbenches/stack_check.js"
 BENCH_PREBARRIER      = "/home/justin/spidermonkey/ambermonkey/fossils/7-7-indirection-microbench/microbenches/prebarrier.js"
@@ -30,26 +27,26 @@ BENCH_ABI_CALL        = "/home/justin/spidermonkey/ambermonkey/fossils/7-7-indir
 BENCH_ARITH           = "/home/justin/spidermonkey/ambermonkey/fossils/7-7-indirection-microbench/microbenches/arith.js"
 BENCH_PROP_LOAD       = "/home/justin/spidermonkey/ambermonkey/fossils/7-7-indirection-microbench/microbenches/prop_load.js"
 BENCH_ARRAY_LOAD      = "/home/justin/spidermonkey/ambermonkey/fossils/7-7-indirection-microbench/microbenches/array_load.js"
-FLAGS_AOT       = "--aot --blinterp-eager --aot-only"
-FLAGS_DEFAULT   = "--blinterp-eager --no-ion" 
-INIT            = "T=$(mktemp /tmp/amber-7-7.XXXXXX.json)"
-RUN             = "perf stat --output=$T -j -e cycles:u,instructions:u,ref-cycles:u"
-EMIT            = "STATUS=$?; cat $T; rm -f $T; exit $STATUS"
+FLAGS_AOT             = "--aot --blinterp-eager --aot-only"
+FLAGS_DEFAULT         = "--blinterp-eager --no-ion"
+INIT                  = "T=$(mktemp /tmp/amber-7-7.XXXXXX.json)"
+RUN                   = "perf stat --output=$T -j -e cycles:u,instructions:u,ref-cycles:u"
+EMIT                  = "STATUS=$?; cat $T; rm -f $T; exit $STATUS"
 
 [variants]
 interrupt-check-default = "$INIT; $RUN $JSSHELL_DEFAULT $FLAGS_DEFAULT -f $BENCH_INTERRUPT_CHECK 1>&2; $EMIT"
 interrupt-check-opt     = "$INIT; $RUN $JSSHELL_OPT     $FLAGS_AOT     -f $BENCH_INTERRUPT_CHECK 1>&2; $EMIT"
-stack-check-default     = "$INIT; $RUN $JSSHELL_DEFAULT $FLAGS_DEFAULT -f $BENCH_STACK_CHECK 1>&2; $EMIT"
-stack-check-opt         = "$INIT; $RUN $JSSHELL_OPT     $FLAGS_AOT     -f $BENCH_STACK_CHECK 1>&2; $EMIT"
-prebarrier-default      = "$INIT; $RUN $JSSHELL_DEFAULT $FLAGS_DEFAULT -f $BENCH_PREBARRIER 1>&2; $EMIT"
-prebarrier-opt          = "$INIT; $RUN $JSSHELL_OPT     $FLAGS_AOT     -f $BENCH_PREBARRIER 1>&2; $EMIT"
-vm-call-default         = "$INIT; $RUN $JSSHELL_DEFAULT $FLAGS_DEFAULT -f $BENCH_VM_CALL 1>&2; $EMIT"
-vm-call-opt             = "$INIT; $RUN $JSSHELL_OPT     $FLAGS_AOT     -f $BENCH_VM_CALL 1>&2; $EMIT"
-abi-call-default        = "$INIT; $RUN $JSSHELL_DEFAULT $FLAGS_DEFAULT -f $BENCH_ABI_CALL 1>&2; $EMIT"
-abi-call-opt            = "$INIT; $RUN $JSSHELL_OPT     $FLAGS_AOT     -f $BENCH_ABI_CALL 1>&2; $EMIT"
-arith-default           = "$INIT; $RUN $JSSHELL_DEFAULT $FLAGS_DEFAULT -f $BENCH_ARITH 1>&2; $EMIT"
-arith-opt               = "$INIT; $RUN $JSSHELL_OPT     $FLAGS_AOT     -f $BENCH_ARITH 1>&2; $EMIT"
-prop-load-default       = "$INIT; $RUN $JSSHELL_DEFAULT $FLAGS_DEFAULT -f $BENCH_PROP_LOAD 1>&2; $EMIT"
-prop-load-opt           = "$INIT; $RUN $JSSHELL_OPT     $FLAGS_AOT     -f $BENCH_PROP_LOAD 1>&2; $EMIT"
-array-load-default      = "$INIT; $RUN $JSSHELL_DEFAULT $FLAGS_DEFAULT -f $BENCH_ARRAY_LOAD 1>&2; $EMIT"
-array-load-opt          = "$INIT; $RUN $JSSHELL_OPT     $FLAGS_AOT     -f $BENCH_ARRAY_LOAD 1>&2; $EMIT"
+stack-check-default     = "$INIT; $RUN $JSSHELL_DEFAULT $FLAGS_DEFAULT -f $BENCH_STACK_CHECK     1>&2; $EMIT"
+stack-check-opt         = "$INIT; $RUN $JSSHELL_OPT     $FLAGS_AOT     -f $BENCH_STACK_CHECK     1>&2; $EMIT"
+prebarrier-default      = "$INIT; $RUN $JSSHELL_DEFAULT $FLAGS_DEFAULT -f $BENCH_PREBARRIER      1>&2; $EMIT"
+prebarrier-opt          = "$INIT; $RUN $JSSHELL_OPT     $FLAGS_AOT     -f $BENCH_PREBARRIER      1>&2; $EMIT"
+vm-call-default         = "$INIT; $RUN $JSSHELL_DEFAULT $FLAGS_DEFAULT -f $BENCH_VM_CALL         1>&2; $EMIT"
+vm-call-opt             = "$INIT; $RUN $JSSHELL_OPT     $FLAGS_AOT     -f $BENCH_VM_CALL         1>&2; $EMIT"
+abi-call-default        = "$INIT; $RUN $JSSHELL_DEFAULT $FLAGS_DEFAULT -f $BENCH_ABI_CALL        1>&2; $EMIT"
+abi-call-opt            = "$INIT; $RUN $JSSHELL_OPT     $FLAGS_AOT     -f $BENCH_ABI_CALL        1>&2; $EMIT"
+arith-default           = "$INIT; $RUN $JSSHELL_DEFAULT $FLAGS_DEFAULT -f $BENCH_ARITH           1>&2; $EMIT"
+arith-opt               = "$INIT; $RUN $JSSHELL_OPT     $FLAGS_AOT     -f $BENCH_ARITH           1>&2; $EMIT"
+prop-load-default       = "$INIT; $RUN $JSSHELL_DEFAULT $FLAGS_DEFAULT -f $BENCH_PROP_LOAD       1>&2; $EMIT"
+prop-load-opt           = "$INIT; $RUN $JSSHELL_OPT     $FLAGS_AOT     -f $BENCH_PROP_LOAD       1>&2; $EMIT"
+array-load-default      = "$INIT; $RUN $JSSHELL_DEFAULT $FLAGS_DEFAULT -f $BENCH_ARRAY_LOAD      1>&2; $EMIT"
+array-load-opt          = "$INIT; $RUN $JSSHELL_OPT     $FLAGS_AOT     -f $BENCH_ARRAY_LOAD      1>&2; $EMIT"

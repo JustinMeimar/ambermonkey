@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""JIT allocation analysis over a memory summary observation."""
 
 import collections
 import json

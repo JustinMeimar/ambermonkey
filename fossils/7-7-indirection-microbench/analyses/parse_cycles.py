@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Parse a perf ndjson observation into cycles/instructions/IPC per microbench iteration."""
 
 import json
 import os
@@ -25,7 +26,6 @@ MIN_RUNNING = 99.5
 
 
 def split_variant(variant):
-    # Match no-opt before opt: the former contains the latter as a suffix.
     for build in sorted(BUILDS, key=len, reverse=True):
         suffix = "-" + build
         if variant.endswith(suffix):

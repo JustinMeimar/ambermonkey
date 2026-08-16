@@ -1,48 +1,24 @@
 name = "7-1-aot-corpus-collector"
-description = "Record the AOT artifact corpus the release browser compiles over tp6. One raptor invocation per site, each writing to its own subdir, so per-site sets are recoverable and the union across a listed site set is a cheap filename set-op. All 32 sites are recorded; train.txt and test.txt freeze the 24/8 partition. The selector unions every supported IC-body identity observed in the training sites and drops their baseline functions (leave-one-site-out evidence in this fossil shows those do not transfer). The self-hosted variant records the one baseline set that does, exhaustively, from the shell."
+description = "Record the AOT artifact corpus one tp6 site at a time, plus the self-hosted baseline set. train.txt and test.txt freeze the 24/8 partition."
 default_iterations = 1
 allow_failure = false
 
-# Reads /tmp/amber-aot-corpus (per-site subdirs, populated by the site
-# variants below), the training partition in train.txt, and
-# /tmp/amber-aot-selfhosted. Emits union counts, singleton/recurrent
-# breakdown, and a diagnostic prevalence sweep the paper cites to show
-# the singleton tail is cheap. Fails loudly if any listed training site
-# lacks a per-site subdir.
 [tables.composition]
 script = "scripts/emit_composition.py"
 
-# Leave-one-site-out identity coverage over the 24 training sites,
-# reported separately for IC bodies and baseline functions. Static
-# coverage only; dynamic entry coverage requires request counters the
-# recorder does not emit. Feeds the Training-Corpus Reuse subsection.
 [tables.loso]
 script = "scripts/loso.py"
 
 [variables]
-# Per-site subdir under @CORPUS. O_EXCL still dedups within a site.
-# Wipe per site before recording; a stale dump would survive as a
-# recorder EEXIST success and pollute the site's set.
-INIT = "rm -rf @CORPUS/$SITE && mkdir -p @CORPUS/$SITE"
+# useAOTImage stays off: the recorder must observe the whole compile stream.
+INIT      = "rm -rf @CORPUS/$SITE && mkdir -p @CORPUS/$SITE"
+RECORD    = "cd @FIREFOX && @MC_AOT ./mach raptor -t $SITE --binary @BIN_AOT --setenv JIT_OPTION_aotRecordDir=@CORPUS/$SITE --setenv @SANDBOX --setenv MOZ_HEADLESS=1 --page-cycles 1 --browser-cycles 1 --post-startup-delay 1000"
+EMIT      = "printf '{\"site\":\"%s\",\"blfun\":%s,\"ic\":%s,\"bytes\":%s}\\n' $SITE $(ls @CORPUS/$SITE | grep -c '^blfun-') $(ls @CORPUS/$SITE | grep -c '^ic-') $(du -sb @CORPUS/$SITE | cut -f1)"
 
-# useAOTImage stays off: the recorder must observe the whole compile
-# stream, and an installed image would skip the compiles it satisfies.
-RECORD = "cd @FIREFOX && @MC_AOT ./mach raptor -t $SITE --binary @BIN_AOT --setenv JIT_OPTION_aotRecordDir=@CORPUS/$SITE --setenv @SANDBOX --setenv MOZ_HEADLESS=1 --page-cycles 1 --browser-cycles 1 --post-startup-delay 1000"
-
-EMIT = "printf '{\"site\":\"%s\",\"blfun\":%s,\"ic\":%s,\"bytes\":%s}\\n' $SITE $(ls @CORPUS/$SITE | grep -c '^blfun-') $(ls @CORPUS/$SITE | grep -c '^ic-') $(du -sb @CORPUS/$SITE | cut -f1)"
-
-# The self-hosted library is the one baseline set the corpus keeps, and no
-# raptor run can produce it: the exhaustive sweep is a shell flag with no
-# environment trigger, so a browser only records what the page happened to
-# call. Lands outside @CORPUS so the selector cannot mistake it for a site.
-#
-# --spectre-mitigations=on is mandatory, not cosmetic. The shell defaults the
-# object and string mitigations off and the browser turns them on by pref;
-# those two bits are fingerprinted and change the emitted code, so without the
-# flag every blob here is code the browser will refuse to install.
+# --spectre-mitigations=on is mandatory: the two mitigation bits are fingerprinted
+# into every blob; without it the browser refuses to install the recorded image.
 SH_RECORD = "rm -rf @SELFHOSTED && @JSSHELL_AOT --spectre-mitigations=on --aot-record=@SELFHOSTED --aot-record-self-hosted -e 'quit(0);'"
-
-SH_EMIT = "printf '{\"site\":\"self-hosted\",\"blfun\":%s,\"ic\":%s,\"bytes\":%s}\\n' $(ls @SELFHOSTED | grep -c '^blfun-') $(ls @SELFHOSTED | grep -c '^ic-') $(du -sb @SELFHOSTED | cut -f1)"
+SH_EMIT   = "printf '{\"site\":\"self-hosted\",\"blfun\":%s,\"ic\":%s,\"bytes\":%s}\\n' $(ls @SELFHOSTED | grep -c '^blfun-') $(ls @SELFHOSTED | grep -c '^ic-') $(du -sb @SELFHOSTED | cut -f1)"
 
 [variants]
 self-hosted    = "$SH_RECORD 1>&2 && $SH_EMIT"

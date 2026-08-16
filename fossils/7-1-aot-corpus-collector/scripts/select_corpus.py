@@ -1,28 +1,9 @@
 #!/usr/bin/env python3
-"""Stage a corpus dir from per-site recordings by union over a listed site set.
+"""Stage a corpus dir from per-site recordings: union over the listed training sites.
 
-Inputs are the per-site subdirs the collector produces under $CORPUS. The
-listed sites define the training population; every other subdir is
-ignored so held-out recordings can share the recording root without
-contaminating the pack.
-
-Selection is the union of every supported artifact identity observed in
-the listed sites, minus the excluded kinds. There is no threshold and
-no byte budget: representability, not prevalence, decides inclusion.
-Representability is enforced downstream by PackAOTImage.py; this
-selector only ensures the packer sees the identity.
-
-Singletons (interp.aotb, configuration.aotb) are handled separately.
-configuration.aotb must be byte-identical across the sites -- a
-mismatch means the recordings disagree on the JitOptions fingerprint
-and their blobs cannot be packed together. interp.aotb should also
-match, but a majority pick is accepted with a note.
-
---self-hosted overlays a shell --aot-record-self-hosted directory. Its
-baseline functions are copied in whole and are exempt from
---exclude-kind, since they are the one baseline set that transfers.
-Its configuration.aotb must match the sites' for the same reason.
-"""
+configuration.aotb must be byte-identical across sites (JitOptions fingerprint).
+interp.aotb accepts a majority pick with a warning. --self-hosted overlays a
+shell --aot-record-self-hosted dir; its baselines are always kept."""
 
 import argparse
 import hashlib

@@ -1,5 +1,5 @@
 name = "7-2-aot-corpus-coverage"
-description = "AOT corpus coverage under held-out workloads. Three evaluation populations: the pooled tp6_test suite (eight tp6 sites frozen in 7-1's test.txt, run in a single AOTCoverage dir per iteration so process-level counters union across sites), Speedometer 3.1, and JetStream 3.0. Two directions per population: utilization (what fraction of the packed baseline-function and IC-stub corpus was touched) and workload coverage (what fraction of the distinct CacheIR shapes requested the image was able to serve). Everything is counted at request time in every AOT-using firefox process, so GC-driven stub purges and script teardown cannot lose counts."
+description = "AOT corpus coverage on held-out workloads: tp6_test (frozen in 7-1's test.txt), Speedometer 3.1, and JetStream 3.0."
 default_iterations = 3
 allow_failure = false
 
@@ -8,41 +8,26 @@ coverage = "analyses/parse_coverage.py"
 
 [tables.baseline-function-table]
 analysis = "coverage"
-script = "figures/baseline_function_table.py"
+script   = "figures/baseline_function_table.py"
 
 [tables.baseline-interpreter-table]
 analysis = "coverage"
-script = "figures/baseline_interpreter_table.py"
+script   = "figures/baseline_interpreter_table.py"
 
 [tables.ic-table]
 analysis = "coverage"
-script = "figures/ic_table.py"
+script   = "figures/ic_table.py"
 
 [variables]
-# Per-iteration scratch dir. AOTCoverage writes one file per firefox
-# process at RuntimeShutdown, named "$JS_AOT_COVERAGE_OUT.<pid>", so
-# the dir accumulates one dump per JSRuntime that touched the AOT
-# image (parent + all AOT-using content procs).
-INIT = "D=$(mktemp -d /tmp/amber-7-2.XXXXXX)"
-
-# useAOTImage installs the packed corpus; JS_AOT_COVERAGE_OUT arms
-# AOTCoverage inside every AOT-using JSRuntime. Both must reach the
-# firefox children, so they go through raptor's --setenv (which
-# maps to --firefox.env on the browsertime side) rather than the
-# shell environment mach itself inherits. Kept as one flat string:
-# fossil variable expansion is single-pass, so we can't reference
-# one variable from another.
+# One scratch dir per iteration; AOTCoverage dumps one file per JSRuntime at shutdown.
+INIT   = "D=$(mktemp -d /tmp/amber-7-2.XXXXXX)"
+# --setenv values must reach content procs; fossil vars are single-pass so keep this flat.
 RAPTOR = "cd @FIREFOX && @MC_AOT ./mach raptor --binary @BIN_AOT --page-cycles 1 --browser-cycles 1 --setenv JIT_OPTION_useAOTImage=true --setenv JS_AOT_COVERAGE_OUT=$D/cov --setenv MOZ_DISABLE_CONTENT_SANDBOX=1 --setenv MOZ_HEADLESS=1 --post-startup-delay 1000"
-
 REDUCE = "python3 /home/justin/spidermonkey/ambermonkey/fossils/7-2-aot-corpus-coverage/scripts/reduce_coverage.py $D && rm -rf $D"
 
 [variants]
 jetstream3   = "$INIT && $RAPTOR -t jetstream3   1>&2 && $REDUCE"
 speedometer3 = "$INIT && $RAPTOR -t speedometer3 1>&2 && $REDUCE"
 
-# tp6_test: the eight held-out tp6 sites frozen in 7-1's test.txt. All
-# eight raptor invocations write into the same $D so the reducer sees
-# every AOT-using pid across the whole suite and utilization / attaches
-# / AOT hit rate pool naturally by union+sum, matching the semantics of
-# the suite variants above.
+# Eight held-out tp6 sites pooled into one $D so counters union across the suite.
 tp6_test = "$INIT && $RAPTOR -t reddit 1>&2 && $RAPTOR -t tumblr 1>&2 && $RAPTOR -t twitch 1>&2 && $RAPTOR -t twitter 1>&2 && $RAPTOR -t wikia 1>&2 && $RAPTOR -t wikipedia 1>&2 && $RAPTOR -t yahoo-mail 1>&2 && $RAPTOR -t youtube 1>&2 && $REDUCE"

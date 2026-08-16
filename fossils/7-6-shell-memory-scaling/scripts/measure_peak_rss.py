@@ -1,12 +1,5 @@
 #!/usr/bin/env python3
-"""Run the given command; emit peak child RSS and peak anonymous-executable
-residency in kilobytes to stderr, grep-friendly; propagate exit code.
-
-Peak RSS comes from getrusage(RUSAGE_CHILDREN).ru_maxrss after the child
-exits. Peak anon-exec is polled from /proc/<pid>/smaps every 50 ms while
-the child runs -- summing Rss over VMAs whose perms contain 'x' and whose
-pathname is empty (anonymous mmaps, which is where SpiderMonkey's
-ExecutableAllocator places all JIT pools)."""
+"""Run a command and emit peak child RSS and peak anonymous-executable residency (kB) on stderr."""
 
 import re
 import resource

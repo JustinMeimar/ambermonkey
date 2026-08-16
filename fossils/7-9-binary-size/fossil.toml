@@ -1,15 +1,13 @@
 name = "7-9-binary-size"
-description = "Snapshot of on-disk binary-size cost for two matched release builds. `libxul` reports libxul.so PT_LOAD bytes plus AOT-image footprint (paper's canonical binary-size table). `browser` widens the scope to the firefox launcher and full dist/bin so libxul-only growth can be contrasted with the whole shipped browser. All numbers are lifted from live build artifacts (readelf + stat + nm), so the fossil re-runs cheaply against whatever browser builds currently exist. The AOT numbers require a preceding `mach jit-aot build` so AOTImage.inc holds real content rather than the empty placeholder GenerateEmptyAOTImage.py leaves. corpus_files_bytes needs an intact pre-pack corpus dir (SELECTED_CORPUS_DIR env or /tmp/amber-aot-corpus-selected); reports 0 when neither exists, because the build does not retain the source dir after packing."
+description = "On-disk binary-size cost for matched release builds: libxul.so + AOT image (engine view), and firefox launcher + full dist/bin (whole-browser view)."
 default_iterations = 1
 allow_failure = false
 
-# Engine-only view: libxul.so + AOT image footprint. What the paper's
-# constants layer reads as `binary-size-file`.
+# Requires a preceding `mach jit-aot build` so AOTImage.inc holds real content.
+# corpus_files_bytes needs SELECTED_CORPUS_DIR or /tmp/amber-aot-corpus-selected;
+# reports 0 otherwise, because the build does not retain the source dir after packing.
 [tables.libxul]
 script = "scripts/measure.py"
 
-# Whole-browser contrast: firefox launcher, libxul.so, and full dist/bin
-# per configuration. Useful when a reader wants AOT growth expressed as
-# a fraction of the shipped browser rather than the engine alone.
 [tables.browser]
 script = "scripts/measure.py"

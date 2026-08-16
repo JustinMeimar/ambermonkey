@@ -1,11 +1,5 @@
 #!/usr/bin/env python3
-"""Peel the reducer's one-line JSON summary back out of the observation
-and re-emit it so the fossil metric fold sees each leaf as a Scalar.
-
-The heavy lifting is upstream in scripts/reduce_coverage.py: per-pid
-dump aggregation is already done and lives in observation.stdout as a
-single trailing JSON line. Here we just parse and pass through.
-"""
+"""Re-emit the reducer's trailing JSON blob so fossil sees each leaf as a Scalar."""
 
 import json
 import sys
@@ -22,10 +16,6 @@ def main():
     if isinstance(stdout, list):
         stdout = "\n".join(stdout)
 
-    # The reducer emits exactly one JSON blob on its final line;
-    # raptor writes nothing to our stdout because we redirect its
-    # output to stderr in the variant command. Take the last
-    # non-empty line to be resilient to accidental trailing noise.
     lines = [ln for ln in stdout.splitlines() if ln.strip()]
     if not lines:
         die("empty stdout; reducer did not run")

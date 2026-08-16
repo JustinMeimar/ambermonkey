@@ -1,10 +1,5 @@
 #!/usr/bin/env python3
-"""Parse one Speedometer observation while retaining browser-run samples.
-
-Fossil folds maps recursively. Emitting the current observation beneath its
-unique iteration key therefore preserves the independent browser runs for
-figures, while top-level scalar leaves retain Fossil's mean/stddev summaries.
-"""
+"""Parse one Speedometer observation while retaining per-run browser samples."""
 
 import json
 import os

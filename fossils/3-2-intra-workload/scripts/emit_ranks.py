@@ -1,22 +1,6 @@
 #!/usr/bin/env python3
-"""Reduce per-process instrumentation JSONL for section 3.2.
-
-The paper studies page-workload IC demand, so this reducer keeps content
-processes only and admits only scripts classified as ``guest``.  Self-hosted
-scripts are counted in diagnostics but excluded from the artifact inventory and
-entry weights.  Unknown or contradictory classifications are fatal.
-
-For every admitted IC body we emit:
-
-``attaches``
-    Attachment-event count.  Downstream analysis uses its keys as the static
-    inventory, including bodies with zero observed entries.
-
-``entered``
-    Real stub-entry counts.  Detached stubs contribute their final
-    ``entered_count``; stubs still live at shutdown contribute through
-    ``entries-flush``.  Fallback stubs are excluded.
-"""
+"""Reduce per-process instrumentation JSONL: content procs, guest scripts only.
+Emits `attaches` (static inventory) and `entered` (stub-entry counts) per IC body."""
 
 import collections
 import json

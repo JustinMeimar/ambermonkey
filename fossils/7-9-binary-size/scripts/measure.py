@@ -1,25 +1,6 @@
 #!/usr/bin/env python3
-"""Measure PT_LOAD and AOT-image bytes for release libxul.so / firefox.
-
-Emits one of two tables depending on FOSSIL_TABLE_NAME:
-
-  libxul   the paper's canonical binary-size table. Reports libxul.so
-           PT_LOAD bytes for both configurations plus the AOT image's
-           corpus/packed/linked footprint. Reproduces the columns cited
-           from the constants layer.
-
-  browser  contrast table: the firefox launcher, libxul.so, and the
-           entire dist/bin directory, per configuration. Lets us cite
-           whole-browser numbers alongside the engine-only ones so a
-           reader can weigh AOT growth against total shipped bytes.
-
-All numbers come from the on-disk build artifacts, not from Fossil
-records, so this re-runs cheaply against whatever browser builds
-currently exist. corpus_files_bytes needs an intact pre-pack corpus dir
-(SELECTED_CORPUS_DIR env var, else /tmp/amber-aot-corpus-selected); it
-reports 0 when neither exists rather than fabricate a value, because the
-build itself does not retain the source dir after packing AOTImage.inc.
-"""
+"""PT_LOAD and AOT-image bytes for release libxul.so / firefox.
+Dispatches on FOSSIL_TABLE_NAME: `libxul` (engine view) or `browser` (whole dist/bin)."""
 
 import json
 import os

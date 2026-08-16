@@ -1,14 +1,5 @@
 #!/home/justin/tools/fossil/figures/.venv/bin/python
-"""JetStream 3 scores per variant, normalized to the stock runtime-lazy
-baseline. Two metrics side-by-side:
-
-    overall_score  the aggregate JS3 suite score
-    startup_score  1000 / geomean(<subtest>-First ms), i.e. inverse
-                   first-iteration latency
-
-Both are oriented higher-is-better so a bar > 1.0 always means
-"better than stock runtime-lazy".
-"""
+"""JetStream 3 overall vs first-iteration scores per variant, normalized to runtime-lazy."""
 
 import sys
 

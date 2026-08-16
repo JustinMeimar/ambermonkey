@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-"""Reviewer-facing headline numbers from one AWSY tp6 record.
-
-Mirrors the claim structure of section 3 (motivation) so that the
-observation JSON can be compared record-over-record without wading
-through the full breakdown tree.
-
-Input:  fossil observation JSON on stdin. `stdout` is the JSON emitted
-        by scripts/emit_summary.py.
-Output: analysis JSON on stdout.
-"""
+"""Headline JIT memory numbers from one AWSY tp6 record."""
 
 import collections
 import json

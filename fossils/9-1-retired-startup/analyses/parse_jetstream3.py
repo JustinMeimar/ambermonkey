@@ -1,15 +1,5 @@
 #!/usr/bin/env python3
-"""Reduce a raptor JS3 JSON result to the metrics we care about.
-
-Emitted metrics:
-    overall_score        suite.value, the aggregate JS3 score (higher is better)
-    startup_score        1000 / geomean(<name>-First ms), inverted so
-                         higher is better and it composes with overall_score
-                         on the same bar chart
-    startup_geomean_ms   raw geomean over <name>-First values, in ms
-                         (lower is better); kept for provenance
-    n_subtests           count of subtests contributing to the geomean
-"""
+"""Reduce a raptor JS3 JSON result to overall/startup score metrics."""
 
 import json
 import os

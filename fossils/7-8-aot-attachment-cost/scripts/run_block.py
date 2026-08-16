@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+"""Run the cpstartup Talos block across runtime/AOT clean/timed cells and emit their payload."""
 
 import argparse
 import hashlib

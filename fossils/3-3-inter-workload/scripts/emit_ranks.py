@@ -1,22 +1,7 @@
 #!/usr/bin/env python3
 """Reduce per-process Baseline and IC demand into artifact counters.
-
-Baseline output has two counters keyed by semantic_id:
-
-    compiles : successful baseline-compile events.
-    entered  : compiled Baseline prologue entries. Retired JitScripts
-               contribute baseline-entries-retire; scripts still live at
-               terminal shutdown contribute entries-flush rows.
-
-IC output has two counters keyed by ic_body_id:
-
-    attaches : times a stub body is attached to an IC chain.
-    entered  : lifetime entries from pre-shutdown detach events plus live
-               stub counters in the terminal entries-flush.
-
-Only guest-class scripts contribute. Every content-process stream must declare
-demand mode and the lifecycle, IC, Demand, and Baseline channels.
-"""
+Baseline: compiles/entered keyed by semantic_id. IC: attaches/entered keyed by ic_body_id.
+Guest scripts only; content streams must have lifecycle/IC/demand/baseline channels."""
 
 import collections
 import json
