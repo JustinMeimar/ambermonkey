@@ -41,7 +41,7 @@
   text(fill: rgb(100, 80, 0), weight: "bold", size: 8pt)[NOTE: #body]
 )
 
-#let fig(path, caption, width: 100%, height: 100%, placement: none, scope: "column") = figure(
+#let fig(path, caption, width: 100%, height: 100%, placement: top, scope: "column") = figure(
   image(path, width: width),
   caption: caption,
   placement: placement,
@@ -130,8 +130,9 @@ unresolvable symbols be attained through indirection. In a configuration
 which disables guest-triggered Baseline-function, IC-body, and optimizing
 compilation, AmberMonkey improves throughput by #sp3-aot-speedup over
 interpretation on Speedometer 3.1 and reachs #sp3-aot-default-fraction of
-default tiered-JIT throughput. Finally, our immutable AOT image avoid reundant
-JIT compilations across runtimes, reducing the engines PSS memory by #jit-memory-reduction on a memory workload.
+default tiered-JIT throughput. Finally, our immutable AOT image avoids redundant
+JIT compilation across runtimes, reducing per-content-process engine PSS by
+#jit-memory-reduction on Speedometer 3.1.
 
 ]
 ]
@@ -213,7 +214,7 @@ Position-Indepdent-Code (PIC) enforced in shared libraries. For another
 class of pointers, the native linker resolves private ELF symbols at link
 time. Lastly, for a residual remainder of symbols which can not be relocated
 at compile or link time, a per-runtime Runtime Indirection Table (RIT) is used. The
-RIT introduces a slight overhead of #indirection-ipi-overhead, however
+RIT introduces a slight overhead of #indirection-overhead, however
 supplies addresses available only _after_ runtime initialization, such as
 [].
 
@@ -265,8 +266,9 @@ runtimes to reuse one corpus and processes to share its physical pages. V8's
 embedded builtins similarly use file-backed instructions to eliminate
 per-isolate builtin copies @gruber2018builtins. This benefit became more
 important as site isolation increased renderer-process counts after Spectre
-@kocher2019spectre. In our scaling experiment, AmberMonkey reduces
-per-runtime growth in private JIT memory by #jit-memory-reduction. This paper
+@kocher2019spectre. On Speedometer 3.1, AmberMonkey reduces per-content-process
+engine PSS by #jit-memory-reduction relative to runtime-generated Baseline
+code. This paper
 makes the following contributions:
 
 #linebreak()
@@ -384,7 +386,7 @@ exploitable defects.
 
 #linebreak()
 
-#section[Structured Inline Caches as an AOT Interface]
+#section[Structured IC Bodies as Reusable AOT Artifacts]
 
 #linebreak()
 
@@ -393,11 +395,10 @@ operation-level specialization through CacheIR. This section describes the
 existing execution pipeline, identifies CacheIR as an ahead-of-time (AOT)
 reuse boundary, shows how AOT bodies retain run-time specialization, and
 measures whether their identities recur across unrelated workloads.
-
 @fig-cacheir-sharing previews the separation between a shared native body and
 the private fields that specialize each IC site.
 
-#cacheir-sharing-example(placement: bottom)
+#cacheir-sharing-example(placement: top)
 
 #subsection[SpiderMonkey's Baseline Tier]
 
@@ -506,7 +507,7 @@ content-process events.
     Baseline functions below the diagonal and inline-cache (IC) bodies above.
     Panels (b) and (c) report the fraction of target dynamic entries covered by
     identities from the row workload.],
-  placement: bottom,
+  placement: top,
   scope: "parent",
 ) <fig-interworkload-coverage>
 
@@ -738,8 +739,7 @@ packer organizes these records using the offset-based layout in
 metadata blobs and 16-byte-aligned instruction bodies within a page-aligned
 code region.
 
-#aot-image-layout()
-#linebreak()
+#aot-image-layout(placement: top)
 
 AmberMonkey identifies each Baseline function with a 160-bit SHA-1 digest of
 compiler-visible script state, including flags, frame and IC layout, scope
@@ -787,7 +787,7 @@ The packer splits the image around these sites. As shown in
 with `.incbin` and emits a linker relocation between them. Runtime-generated
 and host-supplied addresses remain in the RIT.
 
-#image-relocation-scaffold(placement: bottom)
+#image-relocation-scaffold(placement: top)
 
 AmberMonkey also mirrors the interrupt state, JIT stack limit, and count of
 zones requiring pre-write barriers directly in scalar RIT slots. This removes
@@ -1110,9 +1110,11 @@ Peak sample across three iterations.
 Under AOT-only, `.text.aot` has a #sp3-aot-libxul-sharing RSS/PSS ratio across
 #sp3-content-procs content processes. Adding the image increases its total RSS
 by #sp3-image-rss-growth but its PSS by only #sp3-image-pss-growth, confirming
-that processes share its physical pages. We do not interpret the AOT-only PSS
-delta as an engine-memory reduction because disabling fallback compilation
-changes the tier profile.
+that processes share its physical pages. Against the tier-matched, Ion-disabled
+runtime-Baseline configuration, AOT-only reduces engine PSS per process from
+#sp3-runtime-per-proc-pss to #sp3-aot-per-proc-pss, a #jit-memory-reduction
+reduction. We do not compare this reduction against the default configuration,
+whose Ion tier changes the code profile.
 
 #figure(
   table-from-json("7-11-aggregate.json"),
@@ -1183,6 +1185,8 @@ consumer process offers an interesting angle for offline optimization.
 #linebreak()
 
 2. _Type Specialized Builtins_: Previous work done with V8's Torque DSL has demonstrated that type-specialized fast paths can improve the peformance of JavaScript builtins. Common operand-type patterns can establish early control flows independent from generic handlers, allowing more aggressive specialziation for Baseline code. 
+
+#pagebreak()
 
 #bibliography("bib.yaml", style: "ieee")
 

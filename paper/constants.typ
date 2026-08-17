@@ -61,8 +61,12 @@
 #let sp3-workload-count        = int-str(20)
 
 
-// --- 7-6 private-JIT scaling reduction ---
-#let jit-memory-reduction = pct(cell-value("7-6-scaling-jit.json", "slope-mb-per-N", "full_reduction"))
+// --- Speedometer 3 engine-memory reduction at Peak ---
+// Compare the Ion-disabled runtime-Baseline and AOT-only configurations so
+// both measurements have the same tier ceiling.
+#let _jit-memory-runtime-pss = cell-value("7-11-aggregate.json", "default-no-ion", "per_proc_engine_pss_mb")
+#let _jit-memory-aot-pss     = cell-value("7-11-aggregate.json", "aot-corpus",     "per_proc_engine_pss_mb")
+#let jit-memory-reduction    = pct(1 - _jit-memory-aot-pss / _jit-memory-runtime-pss)
 
 
 // --- 7-7 indirection microbenchmark aggregate (Geometric mean row) ---
@@ -107,7 +111,7 @@
 // Sourced from the aggregate-table rows so the numbers in prose track the
 // figure automatically. Intentionally does not export a reduction-vs-stock
 // scalar: aot-corpus runs a different tier profile than stock, so no direct
-// engine-PSS delta is defensible. See §Cross-Process Memory Sharing.
+// engine-PSS delta is defensible. The matched no-Ion comparison is above.
 #let _sp3-stock-libxul-exec-pss = cell-value("7-11-aggregate.json", "default",    "libxul_exec_pss_mb")
 #let _sp3-aot-libxul-exec-pss   = cell-value("7-11-aggregate.json", "aot-corpus", "libxul_exec_pss_mb")
 #let _sp3-stock-libxul-exec-rss = cell-value("7-11-aggregate.json", "default",    "libxul_exec_rss_mb")
@@ -115,10 +119,12 @@
 #let _sp3-stock-anon-exec-pss   = cell-value("7-11-aggregate.json", "default",    "anon_exec_pss_mb")
 #let _sp3-aot-anon-exec-pss     = cell-value("7-11-aggregate.json", "aot-corpus", "anon_exec_pss_mb")
 #let _sp3-stock-per-proc-pss    = cell-value("7-11-aggregate.json", "default",    "per_proc_engine_pss_mb")
-#let _sp3-aot-per-proc-pss      = cell-value("7-11-aggregate.json", "aot-corpus", "per_proc_engine_pss_mb")
+#let _sp3-runtime-per-proc-pss  = _jit-memory-runtime-pss
+#let _sp3-aot-per-proc-pss      = _jit-memory-aot-pss
 
 #let sp3-content-procs           = int-str(cell-value("7-11-aggregate.json", "default", "n_procs"))
 #let sp3-stock-per-proc-pss      = mb-str(_sp3-stock-per-proc-pss)
+#let sp3-runtime-per-proc-pss    = mb-str(_sp3-runtime-per-proc-pss)
 #let sp3-aot-per-proc-pss        = mb-str(_sp3-aot-per-proc-pss)
 #let sp3-stock-anon-exec-pss     = mb-str(_sp3-stock-anon-exec-pss)
 #let sp3-aot-anon-exec-pss       = mb-str(_sp3-aot-anon-exec-pss)

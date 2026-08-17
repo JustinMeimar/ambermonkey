@@ -168,7 +168,7 @@
   ],
 )
 
-#let aot-image-layout(placement: none) = [
+#let aot-image-layout(placement: top) = [
   #figure(
     block(
       width: 100%,
@@ -218,7 +218,7 @@
   ) <fig-aot-image-layout>
 ]
 
-#let image-relocation-scaffold(placement: none) = {
+#let image-relocation-scaffold(placement: top) = {
   show raw.where(block: true): set text(
     font: "DejaVu Sans Mono",
     size: 7pt,
@@ -249,7 +249,7 @@
   ]
 }
 
-#let _fig(path, caption, placement: none, width: auto, height: auto, scope: "column") = {
+#let _fig(path, caption, placement: top, width: auto, height: auto, scope: "column") = {
   let w = if width == auto and height == auto { 100% } else { width }
   figure(
     image(path, width: w, height: height),
