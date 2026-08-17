@@ -1079,10 +1079,10 @@ parallelism absorb, not a loss of throughput on the original work.
 
 #subsection[Cross-Process Memory Sharing]
 
-We instrument Speedometer 3.1 content processes with a `smaps` sidecar that
-separates each process's executable memory into `.text.aot` (file-backed
-libxul pages) and anon-exec (private JIT pages). @tab-sp3-memory reports the
-Peak sample across three iterations.
+We filter the `/proc/<pid>/smaps` entries for each Speedometer 3.1 Firefox
+content process to isolate engine and JIT executable memory. We classify these
+mappings as `.text.aot` (file-backed libxul pages) or anon-exec (private JIT
+pages). @tab-sp3-memory reports the Peak sample across three iterations.
 
 Under AOT-only, `.text.aot` has a #sp3-aot-libxul-sharing RSS/PSS ratio across
 #sp3-content-procs content processes. Adding the image increases its total RSS
