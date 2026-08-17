@@ -35,6 +35,7 @@ fossils/
 | 7-7 | indirection microbenchmarks (perf cycles)      |
 | 7-8 | AOT attachment cost (cpstartup)                |
 | 7-9 | on-disk binary size                            |
+| 7-10| cross-process JIT memory on AWSY tp6           |
 | 9-1 | retired: JetStream 3 startup 2x2               |
 | 9-3 | retired: AmberMonkey held-out performance      |
 
