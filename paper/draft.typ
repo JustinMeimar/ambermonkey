@@ -203,7 +203,7 @@ JIT normally embeds addresses of data structures and code entry points
 created for a particular runtime. The presence of these pointers in native
 code prevents a straighforward reuse in a subsequent process. We call an
 artifact _runtime-independent_ when all of it's JavaScript runtime
-dependencies have been fully exfiltrated and the same identical image bytes
+dependencies have been fully outlined and the same identical image bytes
 can be used in separately initialized runtimes.
 
 To acheive this, AmberMonkey chacterizes the nature of JIT coupling then
@@ -241,8 +241,8 @@ cannonicalzies property access, shape guards and accesses to other ephemeral
 values through stable indicies. SpiderMonkey's IC stubs interact with the
 dynamic engine state through stable references rather than by value. This
 design already enables intra-process sharing of recurring stub bodies.
-AmberMonkey extends this notion cross-process by exfiltrating all IC stubs
-direct reliance on global runtime strucutres. On workloads excluded from
+AmberMonkey extends this notion cross-process by removing IC stubs
+direct dependence on global runtime strucutres. On workloads excluded from
 corpus construction, the fixed corpus serves #sp3-ic-hit-rate of IC-body
 requests on Speedometer 3.1 and #js3-ic-hit-rate on JetStream 3.0.
 
@@ -391,8 +391,8 @@ exploitable defects.
 SpiderMonkey's Baseline tier combines type-generic execution with
 operation-level specialization through CacheIR. This section describes the
 existing execution pipeline, identifies CacheIR as an ahead-of-time (AOT)
-reuse boundary, describes AOT lookup and attachment, and measures whether its
-structural identities recur across unrelated workloads.
+reuse boundary, shows how AOT bodies retain run-time specialization, and
+measures whether their identities recur across unrelated workloads.
 
 @fig-cacheir-sharing previews the separation between a shared native body and
 the private fields that specialize each IC site.
@@ -471,30 +471,14 @@ the same native body. In contrast, SpiderMonkey's optimizing IC compiler can
 embed field values in instructions to avoid these loads, which prevents body
 sharing @demooij2023cacheir.
 
-#subsection[AOT Lookup and Attachment]
+#subsection[AOT Specialization]
 
-During corpus construction, trusted workloads exercise SpiderMonkey's
-ordinary fallback handlers and CacheIR generators. For each new structural
-identity, AmberMonkey invokes the existing Baseline CacheIR compiler and
-captures its native body. It records the cache kind and CacheIR program needed
-for lookup together with the field-layout and execution metadata required to
-reconstruct SpiderMonkey's existing stub interfaces.
-
-At startup, AmberMonkey reconstructs a `CacheIRStubInfo` for each corpus entry
-and associates its structural key with the corresponding image-backed body.
-The body is available before guest JavaScript executes, but AmberMonkey does
-not preconstruct IC chains or predict their field values. Both remain private
-to the destination runtime.
-
-Observed values still determine which CacheIR program the generator selects
-and which values it stores in the stub fields. AmberMonkey can therefore
-match the program to an AOT body while retaining private fields and chain
-metadata. On a hit, AmberMonkey allocates a regular stub instance, copies the
-observed field values, and attaches the image-backed body to the site's chain.
-Run-time specialization does not require run-time code generation. A miss
-falls through to the existing C++ fallback without generating instructions.
-Untrusted observations may therefore select and parameterize only bodies
-fixed by the trusted build; they cannot extend the executable corpus.
+Run-time observations still select a CacheIR program and its private field
+values. AmberMonkey uses the program's structural identity to query the fixed
+AOT corpus. A hit combines the image-backed body with run-time-private fields;
+a miss continues on the generic fallback path without generating instructions.
+Untrusted execution can therefore select and parameterize precompiled bodies,
+but cannot extend the executable corpus.
 
 CacheIR makes body reuse possible, but it does not guarantee that a bounded
 corpus will cover future execution. This utility depends on whether dynamic
@@ -503,103 +487,48 @@ unrelated workloads.
 
 #subsection[Cross-Workload Reuse]
 
-We measure cross-workload recurrence by comparing operation-level IC bodies
-with complete Baseline functions. Baseline functions provide a
-coarse-grained comparison because they incorporate application bytecode. We
-measure both artifact populations to determine which granularity supports a
-bounded AOT corpus.
+We compare exact identities of operation-level IC bodies and complete Baseline
+functions to determine which granularity supports a bounded cross-workload
+corpus.
 
-@fig-interworkload-coverage summarizes this comparison across the sampled
-workloads.
+We partition the #tp6-site-count desktop workloads in Mozilla's tp6 page-load
+suite alphabetically @mozilla2026tp6. The first #tp6-train-site-count form
+_tp6-Train_; the remaining #tp6-test-site-count form the held-out _tp6-Test_.
+The pairwise study in @fig-interworkload-coverage uses the first
+#inter-site-count tp6-Train workloads. This deterministic subset was fixed
+without reference to overlap. We collect repeated cold page loads and retain
+content-process events.
 
 #figure(
   image("lib/figures/3-3-inter-workload-pannel.pdf", width: 100%),
-  caption: [Static and dynamic intersection across the first
-    #inter-site-count tp6-Train workloads alphabetically. Static intersection
-    is the number of shared identities
-    divided by the number observed in either workload. Panel (a) reports
-    Baseline functions below the diagonal and inline-cache (IC) bodies above
-    it. Dynamic intersection is the fraction of target entries whose identity
-    occurs in the row corpus. Panels (b) and (c) report Baseline-function and
-    IC-body dynamic intersection, respectively.],
+  caption: [Cross-workload reuse across the first #inter-site-count tp6-Train
+    workloads. Panel (a) reports Jaccard overlap between identity sets, with
+    Baseline functions below the diagonal and inline-cache (IC) bodies above.
+    Panels (b) and (c) report the fraction of target dynamic entries covered by
+    identities from the row workload.],
   placement: bottom,
   scope: "parent",
 ) <fig-interworkload-coverage>
 
-We partition the #tp6-site-count desktop workloads in the tp6 page-load
-suite alphabetically @mozilla2026tp6. We define _tp6-Train_ as the first
-#tp6-train-site-count workloads and _tp6-Test_ as the remaining
-#tp6-test-site-count. Only tp6-Train participates in image construction;
-tp6-Test remains held out for coverage evaluation.
-
-For this preliminary study, we analyze the first #inter-site-count tp6-Train
-workloads: Amazon, Bing Search, BuzzFeed, CNN, eBay, ESPN, Expedia, and
-Facebook. This deterministic subset keeps the pairwise comparison readable
-without selecting workloads by their measured overlap. For each workload,
-our collection performs repeated cold page loads and retains events from
-content processes only.
-
 We instrument SpiderMonkey to record Baseline-function identities, attached
-IC-body identities, and entries into both artifact types. We define _static
-intersection_ as the number of unique identities shared by two workloads
-divided by the number observed in either workload. This symmetric metric
-weights each identity once. We define _dynamic intersection_ directionally
-as the fraction of a target workload's entries whose identity also occurs in
-a corpus workload. We count Baseline-function entries and IC stub entries as
-the dynamic events for their respective artifact types.
+IC-body identities, and entries into both artifact types. Static overlap is
+the Jaccard index of two identity sets. Dynamic coverage is the fraction of a
+target's function or stub entries whose identity occurs in the corpus
+workload.
 
-@fig-interworkload-coverage compares static and dynamic intersection for
-every workload pair. Panel (a) reports static intersection between unique
-identity sets: Baseline functions below the diagonal and IC bodies above it.
-For panels (b) and (c), we form a candidate corpus from the identities
-observed in each row workload. Each cell reports the dynamic intersection
-with the column workload. Panel (b) weights Baseline-function identities by
-function entries, while panel (c) weights IC-body identities by stub
-entries.
+Baseline functions have a median Jaccard overlap of
+#inter-baseline-jaccard-median, and a workload covers only
+#inter-baseline-coverage-median of another's function entries at the median.
+For IC bodies, these values rise to #inter-ic-jaccard-median and
+#inter-ic-coverage-median. The shared IC set therefore contains the frequently
+entered bodies: #inter-ic-pairs-at-threshold of #inter-ic-offdiag-count pairs
+cover at least #inter-ic-threshold-pct of target stub entries, and the minimum
+is #inter-ic-min-value.
 
-Baseline functions exhibit little cross-workload reuse. Their median
-off-diagonal static intersection is #inter-baseline-jaccard-median. At the
-median, identities collected from one workload account for
-#inter-baseline-coverage-median of another workload's function entries. The
-median IC-body static intersection is #inter-ic-jaccard-median, and
-identities shared with another workload account for
-#inter-ic-coverage-median of its stub entries. The shared IC identities
-include the frequently entered bodies, so dynamic intersection substantially
-exceeds static set overlap.
-
-Our measurements show that cross-workload reuse decreases as generated code
-incorporates more application-specific context. Operation-level IC bodies
-recur across workloads, whereas whole-function artifacts rarely share exact
-identities. We expect trace and optimizing compilation to exhibit still less
-exact reuse, but we do not measure those tiers.
-
-IC coverage is comparatively uniform: #inter-ic-pairs-at-threshold of
-#inter-ic-offdiag-count off-diagonal pairs cover at least
-#inter-ic-threshold-pct of target stub entries. The minimum is
-#inter-ic-min-value when #inter-ic-min-corpus supplies the corpus and
-#inter-ic-min-target is the target. These asymmetric cases reflect which
-identities dominate each target rather than set overlap alone.
-
-#subsection[Artifact Selection]
-
-We use the reuse study to select artifacts for workload-based collection.
-AmberMonkey includes every distinct IC body observed in tp6-Train because these
-operation-level artifacts recur across workloads. Application Baseline
-functions rarely serve other workloads, so we do not predict them from
-unrelated guests.
-
-Build-time-known artifacts do not require cross-workload prediction.
-SpiderMonkey ships its self-hosted JavaScript with the engine, so AmberMonkey
-drives and Baseline-compiles all #self-hosted-fn-count functions during the
-trusted build. The Baseline Interpreter is deterministic for a fixed engine
-build and JIT configuration, so AmberMonkey also includes its complete handler
-set. Capturing both artifact classes avoids regenerating identical code in each
-runtime. Other deterministic artifacts, including trampolines, remain outside
-this work's scope.
-
-These policies determine which artifacts enter the AOT image. The next section
-explains how AmberMonkey supplies their external addresses without coupling the
-selected instructions to one runtime.
+Exact reuse decreases as artifacts incorporate more application context.
+These results support IC bodies, rather than application Baseline functions,
+as the workload-derived corpus unit. Section VI-B describes construction of
+the evaluated image; we do not measure trace or optimizing code.
 
 #section[AmberMonkey Design]
 
@@ -869,27 +798,17 @@ mirroring separately.
 
 #subsection[Implementation Scope]
 
-The current x86-64 prototype limits both its dependency coverage and its image
-trust model. Each Baseline and stub frame gains one machine word. The Baseline
-Interpreter and each image-backed Baseline function also require a private preamble.
+The x86-64 prototype covers the selected corpus and intercepted operand forms.
+It adds one word to each Baseline or stub frame and a private preamble to each
+image-backed Baseline artifact. Deterministic trampolines and entry preambles
+remain generated during initialization. The prototype supports seven permanent
+atom immediates but rejects movable garbage-collected pointers and retargetable
+table entries.
 
-The prototype still generates deterministic trampolines and entry preambles
-during engine initialization. This is an implementation artifact rather than a
-design requirement. The bootstrap can capture these artifacts and package them
-in the AOT image.
-
-The image is a trusted build artifact compiled into the engine. The runtime
-checks its format and total size but does not validate every directory offset
-as an adversarial cache parser would. Externally replaceable images would
-require a hardened validator and an authenticity policy.
-
-The dependency audit covers the selected corpus and the operand forms
-intercepted by the prototype. The prototype supports seven permanent atom
-immediates; arbitrary movable garbage-collected pointers and retargetable table
-entries remain unsupported. Existing profiler or coverage instrumentation can
-make an image-backed code page writable. The first write then creates a private copy
-for that process and forfeits operating-system sharing for the affected page.
-We account for these boundaries when scoping the evaluation and conclusions.
+The image is a trusted artifact compiled into the engine; an externally
+replaceable image would require stronger validation and authentication.
+Profiler or coverage instrumentation can also patch image-backed pages, making
+the affected pages private and forfeiting their cross-process sharing.
 
 #section[Experimental Methodology]
 
@@ -942,16 +861,10 @@ stub layout. This procedure yields #ic-stub-count bodies occupying
 identities rarely recur across workloads.
 
 The image also contains all #self-hosted-fn-count self-hosted Baseline
-functions and the complete Baseline Interpreter. SpiderMonkey ships the
-self-hosted source with the engine, making these functions available during
-the trusted build without predicting guest code. A fixed engine build and JIT
-configuration also generate the same Baseline Interpreter for every runtime.
-Capturing both artifact classes therefore avoids redundant run-time
-compilation.
-
-The packed image occupies #corpus-packed-size. We finalize it before collecting
-tp6-Test, Speedometer 3.1, and JetStream 3.0 results, and report its page-aligned
-linked range and total linked-binary growth separately.
+functions, which are available during the build, and the deterministic
+Baseline Interpreter. The packed image occupies #corpus-packed-size. We
+finalize it before collecting tp6-Test, Speedometer 3.1, and JetStream 3.0
+results.
 
 #subsection[Execution Configurations]
 
@@ -1079,6 +992,44 @@ the performance recovered by the immutable corpus: AOT-only recovers
   scope: "parent",
 ) <fig-amber-perf-speed3>
 
+#subsection[Comparison with V8 Jitless]
+
+V8 exposes a `--jitless` flag that disables all run-time code generation,
+including its Sparkplug baseline compiler, Maglev, and TurboFan optimizing
+tiers @gruber2019jitless. It serves as the closest production analogue to
+AmberMonkey's restricted-execution configuration: both prohibit
+guest-triggered native code emission and rely on precompiled artifacts plus
+a generic interpreter to execute JavaScript. We compare the two engines on
+Speedometer 3.1 and JetStream 3.0 to place AmberMonkey's recovered
+throughput on an absolute cross-engine footing rather than a purely
+intra-SpiderMonkey ratio.
+
+#TODO[Collect V8 Jitless numbers (Chrome/Node with `--jitless`) on the same
+hardware and Raptor harness. Report per-suite geometric means for
+(i) V8 default, (ii) V8 Jitless, and (iii) AmberMonkey AOT-only, alongside
+the Jitless-to-default fraction for each engine so the two restricted
+configurations can be compared as fractions of their respective unrestricted
+tiers.]
+
+#subsection[AOT Image Installation Cost]
+
+AmberMonkey replaces some run-time compilation with image validation,
+metadata reconstruction, and per-runtime initialization. We measure its
+end-to-end effect on content-process startup and attribute that cost to the
+installation phases.
+
+We use Firefox's `cpstartup` benchmark and compare two configurations of the
+same AOT-enabled binary with the image disabled and enabled; both retain
+fallback compilation. Each of 10 randomized blocks contains an untimed pair
+for the primary comparison and a timed pair for attribution and measurement of
+instrumentation overhead.
+
+Per-content-process timers cover image compatibility, Baseline Interpreter and
+inline-cache (IC) corpus reconstruction, Runtime Indirection Table (RIT)
+initialization, lazy Baseline and IC attachment, and residual compilation.
+
+#TODO[Report the paired `cpstartup` difference and ratio with 95% bootstrap
+confidence intervals, per-phase time and call counts, and timer overhead.]
 
 #subsection[Indirection Overhead]
 
@@ -1153,43 +1104,15 @@ parallelism absorb, not a loss of throughput on the original work.
 
 We instrument Speedometer 3.1 content processes with a `smaps` sidecar that
 separates each process's executable memory into `.text.aot` (file-backed
-libxul executable pages, where the AOT image lives) and anon-exec (private
-anonymous executable pages, where runtime-generated Baseline and IC code
-lives). @fig-sp3-composition reports the Peak sample across four
-configurations; @tab-sp3-memory reports the underlying values.
+libxul pages) and anon-exec (private JIT pages). @tab-sp3-memory reports the
+Peak sample across three iterations.
 
-We report this measurement as a validation of the sharing model rather
-than as an engine-PSS reduction claim. AOT-only forbids fallback
-compilation, so its tier profile is strictly narrower than any variant
-that still runs a Baseline JIT; a direct engine-PSS delta between the two
-would conflate the AOT image with the tier restriction. What the
-measurement does defensibly show is that (i) the AOT image is shared
-across content processes and (ii) it adds a small marginal cost on top of
-the libxul executable region that it extends. Under AOT-only, `.text.aot`
-sustains a RSS/PSS ratio of #sp3-aot-libxul-sharing across
-#sp3-content-procs content processes, close to the maximum achievable when
-every process's mapping of the image resolves to the same physical pages.
-Adding the image grows total content-process `.text.aot` RSS by
-#sp3-image-rss-growth while growing total PSS by only
-#sp3-image-pss-growth, a #sp3-image-sharing-amplification amplification
-between mapped and physical memory. The private anon-exec segment
-collapses from #sp3-stock-anon-exec-pss under stock to
-#sp3-aot-anon-exec-pss under AOT-only because the image serves the
-requests that would otherwise trigger Baseline and IC compilation; the
-residual pages come from trampolines and entry preambles that AmberMonkey
-does not currently freeze.
-
-#fig(
-  "lib/figures/7-11-sp3-composition.pdf",
-  [Speedometer 3.1 content-process engine memory at Peak
-   (#sp3-content-procs content processes, three iterations). Bars stack
-   the shared `.text.aot` PSS (solid) and the private anon-exec PSS
-   (hatched); numbers annotated on the bars are per-configuration MB
-   values. Right-axis markers give the `.text.aot` RSS/PSS ratio, an
-   indicator of cross-process sharing whose ceiling is the number of
-   content processes.],
-  placement: top,
-) <fig-sp3-composition>
+Under AOT-only, `.text.aot` has a #sp3-aot-libxul-sharing RSS/PSS ratio across
+#sp3-content-procs content processes. Adding the image increases its total RSS
+by #sp3-image-rss-growth but its PSS by only #sp3-image-pss-growth, confirming
+that processes share its physical pages. We do not interpret the AOT-only PSS
+delta as an engine-memory reduction because disabling fallback compilation
+changes the tier profile.
 
 #figure(
   table-from-json("7-11-aggregate.json"),
