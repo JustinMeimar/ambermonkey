@@ -188,48 +188,45 @@ JavaScript that SpiderMonkey avoids generating bytecode for many functions
 until their first execution, while V8 similarly defers full parsing and
 bytecode compilation @mozilla2026lazyparsing @v8preparser2019.
 
-These workload constraints raise two questions for AOT compilation in
-browser engines. First, which native artifacts are known before deployment
-or recur often enough across unrelated programs to justify inclusion in a
-bounded image? Second, can artifacts produced by an existing JIT generator
-execute in independently initialized runtimes despite embedding
-process-specific code and data addresses? A practical design must both
-select artifacts without knowing the deployed workload and remove their
-dependence on the runtime that generated them.
+The semantic complexity that motivates interpreter-derived compilation also
+constrains our design. Adding an AOT backend would introduce another
+implementation of JavaScript semantics and require it to reproduce the
+production engine's garbage-collection, exception-handling, stack-walking,
+and tiering interfaces. We instead reuse SpiderMonkey's production Baseline
+generators during a trusted build. We examine the security implications of
+reusing these generators in our discussion of JIT complexity.
+
+Reusing production generators for an open-world workload raises two
+questions. First, which generated artifacts are known before deployment or
+recur often enough across unrelated programs to justify inclusion in a
+bounded image? Second, can artifacts produced for one JavaScript runtime
+execute in another despite embedding process-specific code and data
+addresses? A practical design must select useful artifacts without knowing
+the deployed workload and make those artifacts independent of the runtime
+that generated them.
 
 To answer the first question, we characterize reuse among Baseline-tier
 artifacts. The Baseline Interpreter is deterministic for a fixed engine
 build, and SpiderMonkey's self-hosted JavaScript is available at build time.
 Application Baseline functions instead encode guest bytecode and rarely
 share exact identities across unrelated workloads. IC bodies recur because
-CacheIR separates executable bodies from the per-site data that specializes
-them @demooij2023cacheir. This separation already enables recurring bodies
-to be shared within one process; a fixed corpus can extend that reuse across
+CacheIR separates executable bodies from the site-specific data that
+parameterizes them @demooij2023cacheir. This separation already enables
+sharing within one process and allows a fixed corpus to extend reuse across
 processes and workloads. We construct the corpus from the first
 three-quarters of Mozilla's tp6 page set, which contains #tp6-site-count
 sites, and retain the final quarter for held-out evaluation
-@mozilla2026tp6.
-
-Per the second question, we are highly motivated to reuse existing code
-generation routines as to avoid introducing additional interpreations of the
-JavaScript specification. We elaborate on the security implications of doing
-so in section II.A. AmberMonkey runs SpiderMonkey's production Baseline
-generators during a trusted build, preserving their implementation of
-JavaScript semantics and their integration with existing engine interfaces.
-It precompiles the Baseline Interpreter, self-hosted Baseline functions, and
-a corpus of IC bodies. SpiderMonkey still observes types and selects IC
-specializations at run time, but matching native bodies come from an
-immutable image rather than run-time code generation.
-
-
+@mozilla2026tp6. AmberMonkey's image combines this corpus with the
+deterministic Baseline Interpreter and self-hosted Baseline functions known
+at build time.
 
 To answer the second question, we make generated artifacts independent of
 the process that produced them. JIT-generated instructions normally embed
 addresses of data structures and code entry points created for one runtime.
-These addresses prevent the same native bytes from executing in a separately
-initialized runtime. We call an artifact _runtime-independent_ when it
-outlines these dependencies so that separately initialized runtimes can use
-identical image bytes.
+These addresses prevent identical instructions from executing in separately
+initialized runtimes. We call an artifact _runtime-independent_ when its
+executable bytes are immutable across runtimes and its runtime-specific
+dependencies are supplied without modifying those bytes.
 
 AmberMonkey classifies each embedded address by when it can be resolved.
 It rewrites some references as program-counter-relative control flow and
