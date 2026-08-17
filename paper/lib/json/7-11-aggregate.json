@@ -7,20 +7,14 @@
       "align": "left"
     },
     {
-      "key": "checkpoint",
-      "label": "checkpoint",
-      "format": "str",
-      "align": "left"
-    },
-    {
       "key": "n_procs",
       "label": "content procs",
       "format": "int",
       "align": "right"
     },
     {
-      "key": "anon_exec_pss_mb",
-      "label": "anon-exec PSS (MB)",
+      "key": "libxul_exec_rss_mb",
+      "label": ".text.aot RSS (MB)",
       "format": "float",
       "align": "right"
     },
@@ -31,14 +25,14 @@
       "align": "right"
     },
     {
-      "key": "libxul_exec_rss_mb",
-      "label": ".text.aot RSS (MB)",
+      "key": "sharing_ratio",
+      "label": "RSS/PSS (sharing)",
       "format": "float",
       "align": "right"
     },
     {
-      "key": "engine_pss_mb",
-      "label": "engine PSS total (MB)",
+      "key": "anon_exec_pss_mb",
+      "label": "anon-exec PSS (MB)",
       "format": "float",
       "align": "right"
     },
@@ -47,102 +41,44 @@
       "label": "engine PSS / proc (MB)",
       "format": "float",
       "align": "right"
-    },
-    {
-      "key": "reduction_vs_stock",
-      "label": "engine-PSS \u0394 vs stock",
-      "format": "percent",
-      "align": "right"
     }
   ],
   "rows": [
     [
-      "sp3-stock",
-      "Peak",
+      "default",
       9,
-      53.543,
-      54.683,
-      276.016,
-      108.226,
-      12.0251,
-      0.0
+      270.41,
+      53.56,
+      5.05,
+      72.55,
+      14.01
     ],
     [
-      "sp3-stock",
-      "Final",
+      "default-no-ion",
       9,
-      18.02,
-      54.683,
-      276.016,
-      72.702,
-      8.078,
-      0.0
+      271.96,
+      53.55,
+      5.08,
+      75.16,
+      14.3
     ],
     [
-      "sp3-stock-baseline",
-      "Peak",
+      "aot",
       9,
-      71.371,
-      54.589,
-      275.004,
-      125.96,
-      13.9956,
-      -0.1639
+      277.66,
+      54.44,
+      5.1,
+      69.06,
+      13.72
     ],
     [
-      "sp3-stock-baseline",
-      "Final",
-      1,
-      0,
-      0,
-      0,
-      0,
-      0.0,
-      1.0
-    ],
-    [
-      "sp3-aot",
-      "Peak",
+      "aot-corpus",
       9,
-      55.785,
-      55.555,
-      280.598,
-      111.34,
-      12.3711,
-      -0.0288
-    ],
-    [
-      "sp3-aot",
-      "Final",
-      9,
-      9.828,
-      55.555,
-      280.598,
-      65.383,
-      7.2648,
-      0.1007
-    ],
-    [
-      "sp3-aot-only",
-      "Peak",
-      9,
-      2.074,
-      55.582,
-      282.914,
-      57.657,
-      6.4063,
-      0.4673
-    ],
-    [
-      "sp3-aot-only",
-      "Final",
-      9,
-      2.008,
-      45.601,
-      209.461,
-      47.609,
-      5.2898,
-      0.3452
+      293.88,
+      55.83,
+      5.26,
+      1.89,
+      6.19
     ]
   ]
 }

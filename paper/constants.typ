@@ -103,6 +103,38 @@
 #let awsy-aot-libxul-sharing      = float-str(_awsy-aot-libxul-exec-rss / _awsy-aot-libxul-exec-pss, digits: 1) + "×"
 
 
+// --- 7-11 Speedometer 3 cross-process sharing (Peak checkpoint) ---
+// Sourced from the aggregate-table rows so the numbers in prose track the
+// figure automatically. Intentionally does not export a reduction-vs-stock
+// scalar: aot-corpus runs a different tier profile than stock, so no direct
+// engine-PSS delta is defensible. See §Cross-Process Memory Sharing.
+#let _sp3-stock-libxul-exec-pss = cell-value("7-11-aggregate.json", "default",    "libxul_exec_pss_mb")
+#let _sp3-aot-libxul-exec-pss   = cell-value("7-11-aggregate.json", "aot-corpus", "libxul_exec_pss_mb")
+#let _sp3-stock-libxul-exec-rss = cell-value("7-11-aggregate.json", "default",    "libxul_exec_rss_mb")
+#let _sp3-aot-libxul-exec-rss   = cell-value("7-11-aggregate.json", "aot-corpus", "libxul_exec_rss_mb")
+#let _sp3-stock-anon-exec-pss   = cell-value("7-11-aggregate.json", "default",    "anon_exec_pss_mb")
+#let _sp3-aot-anon-exec-pss     = cell-value("7-11-aggregate.json", "aot-corpus", "anon_exec_pss_mb")
+#let _sp3-stock-per-proc-pss    = cell-value("7-11-aggregate.json", "default",    "per_proc_engine_pss_mb")
+#let _sp3-aot-per-proc-pss      = cell-value("7-11-aggregate.json", "aot-corpus", "per_proc_engine_pss_mb")
+
+#let sp3-content-procs           = int-str(cell-value("7-11-aggregate.json", "default", "n_procs"))
+#let sp3-stock-per-proc-pss      = mb-str(_sp3-stock-per-proc-pss)
+#let sp3-aot-per-proc-pss        = mb-str(_sp3-aot-per-proc-pss)
+#let sp3-stock-anon-exec-pss     = mb-str(_sp3-stock-anon-exec-pss)
+#let sp3-aot-anon-exec-pss       = mb-str(_sp3-aot-anon-exec-pss)
+#let sp3-stock-libxul-sharing    = float-str(_sp3-stock-libxul-exec-rss / _sp3-stock-libxul-exec-pss, digits: 1) + "×"
+#let sp3-aot-libxul-sharing      = float-str(_sp3-aot-libxul-exec-rss / _sp3-aot-libxul-exec-pss, digits: 1) + "×"
+
+// Marginal cost of adding the AOT image, expressed both as physical PSS
+// growth and as mapped RSS growth. The RSS/PSS ratio of the delta captures
+// how effectively the new file-backed pages are shared across content procs.
+#let _sp3-image-pss-growth       = _sp3-aot-libxul-exec-pss - _sp3-stock-libxul-exec-pss
+#let _sp3-image-rss-growth       = _sp3-aot-libxul-exec-rss - _sp3-stock-libxul-exec-rss
+#let sp3-image-pss-growth        = mb-str(_sp3-image-pss-growth, digits: 1)
+#let sp3-image-rss-growth        = mb-str(_sp3-image-rss-growth, digits: 1)
+#let sp3-image-sharing-amplification = float-str(_sp3-image-rss-growth / _sp3-image-pss-growth, digits: 1) + "×"
+
+
 // --- 7-9 binary-size impact (libxul-focused) ---
 // Row labels match the human-readable "Configuration" column of 7-9-libxul.json.
 #let _libxul-default = cell-value("7-9-libxul.json", "Default JIT",       "pt_load_bytes")

@@ -1149,6 +1149,59 @@ parallelism absorb, not a loss of throughput on the original work.
 ) <fig-indirection-overhead>
 
 
+#subsection[Cross-Process Memory Sharing]
+
+We instrument Speedometer 3.1 content processes with a `smaps` sidecar that
+separates each process's executable memory into `.text.aot` (file-backed
+libxul executable pages, where the AOT image lives) and anon-exec (private
+anonymous executable pages, where runtime-generated Baseline and IC code
+lives). @fig-sp3-composition reports the Peak sample across four
+configurations; @tab-sp3-memory reports the underlying values.
+
+We report this measurement as a validation of the sharing model rather
+than as an engine-PSS reduction claim. AOT-only forbids fallback
+compilation, so its tier profile is strictly narrower than any variant
+that still runs a Baseline JIT; a direct engine-PSS delta between the two
+would conflate the AOT image with the tier restriction. What the
+measurement does defensibly show is that (i) the AOT image is shared
+across content processes and (ii) it adds a small marginal cost on top of
+the libxul executable region that it extends. Under AOT-only, `.text.aot`
+sustains a RSS/PSS ratio of #sp3-aot-libxul-sharing across
+#sp3-content-procs content processes, close to the maximum achievable when
+every process's mapping of the image resolves to the same physical pages.
+Adding the image grows total content-process `.text.aot` RSS by
+#sp3-image-rss-growth while growing total PSS by only
+#sp3-image-pss-growth, a #sp3-image-sharing-amplification amplification
+between mapped and physical memory. The private anon-exec segment
+collapses from #sp3-stock-anon-exec-pss under stock to
+#sp3-aot-anon-exec-pss under AOT-only because the image serves the
+requests that would otherwise trigger Baseline and IC compilation; the
+residual pages come from trampolines and entry preambles that AmberMonkey
+does not currently freeze.
+
+#fig(
+  "lib/figures/7-11-sp3-composition.pdf",
+  [Speedometer 3.1 content-process engine memory at Peak
+   (#sp3-content-procs content processes, three iterations). Bars stack
+   the shared `.text.aot` PSS (solid) and the private anon-exec PSS
+   (hatched); numbers annotated on the bars are per-configuration MB
+   values. Right-axis markers give the `.text.aot` RSS/PSS ratio, an
+   indicator of cross-process sharing whose ceiling is the number of
+   content processes.],
+  placement: top,
+) <fig-sp3-composition>
+
+#figure(
+  table-from-json("7-11-aggregate.json"),
+  caption: [Speedometer 3.1 engine memory at Peak, per configuration.
+    Values are means across three iterations. `.text.aot RSS/PSS` is the
+    cross-process sharing ratio; higher is more shared. `anon-exec PSS`
+    is total private-JIT memory across content processes. `engine PSS /
+    proc` is (`.text.aot PSS` + `anon-exec PSS`) / n_procs.],
+  placement: top,
+) <tab-sp3-memory>
+
+
 #subsection[Binary Size]
 
 AmberMonkey increases the deployed Firefox engine binary by
