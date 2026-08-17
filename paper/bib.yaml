@@ -545,6 +545,21 @@ fallin2024weval:
   date: 2024-08-28
   url: "https://cfallin.org/blog/2024/08/28/weval/"
 
+fallin2025weval:
+  type: article
+  title: "Partial Evaluation, Whole-Program Compilation"
+  author:
+    - Fallin, Chris
+    - Bernstein, Maxwell
+  date: 2025
+  parent:
+    type: periodical
+    title: "Proceedings of the ACM on Programming Languages"
+    volume: 9
+    issue: PLDI
+  publisher: ACM
+  doi: "10.1145/3729259"
+
 futamura1971partial:
   type: article
   title: "Partial Evaluation of Computation Process—An Approach to a Compiler-Compiler"
@@ -880,6 +895,23 @@ mozilla2026spidermonkeytiers:
     - Mozilla
   date: 2026
   url: "https://firefox-source-docs.mozilla.org/js/how-we-optimize.html"
+
+mozilla2026lazyparsing:
+  type: web
+  title: "SpiderMonkey"
+  author:
+    - Mozilla
+  date: 2026
+  url: "https://firefox-source-docs.mozilla.org/js/"
+
+v8preparser2019:
+  type: web
+  title: "Blazingly Fast Parsing, Part 2: Lazy Parsing"
+  author:
+    - Verwaest, Toon
+    - Hillerström, Marja
+  date: 2019-04-15
+  url: "https://v8.dev/blog/preparser"
 
 mozilla2026cacheir:
   type: web

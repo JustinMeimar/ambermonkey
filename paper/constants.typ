@@ -64,8 +64,8 @@
 // --- Speedometer 3 engine-memory reduction at Peak ---
 // Compare the Ion-disabled runtime-Baseline and AOT-only configurations so
 // both measurements have the same tier ceiling.
-#let _jit-memory-runtime-pss = cell-value("7-11-aggregate.json", "default-no-ion", "per_proc_engine_pss_mb")
-#let _jit-memory-aot-pss     = cell-value("7-11-aggregate.json", "aot-corpus",     "per_proc_engine_pss_mb")
+#let _jit-memory-runtime-pss = cell-value("cross-process-memory-sharing-aggregate.json", "default-no-ion", "per_proc_engine_pss_mb")
+#let _jit-memory-aot-pss     = cell-value("cross-process-memory-sharing-aggregate.json", "aot-corpus",     "per_proc_engine_pss_mb")
 #let jit-memory-reduction    = pct(1 - _jit-memory-aot-pss / _jit-memory-runtime-pss)
 
 
@@ -112,17 +112,17 @@
 // figure automatically. Intentionally does not export a reduction-vs-stock
 // scalar: aot-corpus runs a different tier profile than stock, so no direct
 // engine-PSS delta is defensible. The matched no-Ion comparison is above.
-#let _sp3-stock-libxul-exec-pss = cell-value("7-11-aggregate.json", "default",    "libxul_exec_pss_mb")
-#let _sp3-aot-libxul-exec-pss   = cell-value("7-11-aggregate.json", "aot-corpus", "libxul_exec_pss_mb")
-#let _sp3-stock-libxul-exec-rss = cell-value("7-11-aggregate.json", "default",    "libxul_exec_rss_mb")
-#let _sp3-aot-libxul-exec-rss   = cell-value("7-11-aggregate.json", "aot-corpus", "libxul_exec_rss_mb")
-#let _sp3-stock-anon-exec-pss   = cell-value("7-11-aggregate.json", "default",    "anon_exec_pss_mb")
-#let _sp3-aot-anon-exec-pss     = cell-value("7-11-aggregate.json", "aot-corpus", "anon_exec_pss_mb")
-#let _sp3-stock-per-proc-pss    = cell-value("7-11-aggregate.json", "default",    "per_proc_engine_pss_mb")
+#let _sp3-stock-libxul-exec-pss = cell-value("cross-process-memory-sharing-aggregate.json", "default",    "libxul_exec_pss_mb")
+#let _sp3-aot-libxul-exec-pss   = cell-value("cross-process-memory-sharing-aggregate.json", "aot-corpus", "libxul_exec_pss_mb")
+#let _sp3-stock-libxul-exec-rss = cell-value("cross-process-memory-sharing-aggregate.json", "default",    "libxul_exec_rss_mb")
+#let _sp3-aot-libxul-exec-rss   = cell-value("cross-process-memory-sharing-aggregate.json", "aot-corpus", "libxul_exec_rss_mb")
+#let _sp3-stock-anon-exec-pss   = cell-value("cross-process-memory-sharing-aggregate.json", "default",    "anon_exec_pss_mb")
+#let _sp3-aot-anon-exec-pss     = cell-value("cross-process-memory-sharing-aggregate.json", "aot-corpus", "anon_exec_pss_mb")
+#let _sp3-stock-per-proc-pss    = cell-value("cross-process-memory-sharing-aggregate.json", "default",    "per_proc_engine_pss_mb")
 #let _sp3-runtime-per-proc-pss  = _jit-memory-runtime-pss
 #let _sp3-aot-per-proc-pss      = _jit-memory-aot-pss
 
-#let sp3-content-procs           = int-str(cell-value("7-11-aggregate.json", "default", "n_procs"))
+#let sp3-content-procs           = int-str(cell-value("cross-process-memory-sharing-aggregate.json", "default", "n_procs"))
 #let sp3-stock-per-proc-pss      = mb-str(_sp3-stock-per-proc-pss)
 #let sp3-runtime-per-proc-pss    = mb-str(_sp3-runtime-per-proc-pss)
 #let sp3-aot-per-proc-pss        = mb-str(_sp3-aot-per-proc-pss)
@@ -139,6 +139,14 @@
 #let sp3-image-pss-growth        = mb-str(_sp3-image-pss-growth, digits: 1)
 #let sp3-image-rss-growth        = mb-str(_sp3-image-rss-growth, digits: 1)
 #let sp3-image-sharing-amplification = float-str(_sp3-image-rss-growth / _sp3-image-pss-growth, digits: 1) + "×"
+
+// interp-only floor: no JIT backend attached, so anon-exec should be zero.
+// Its per-proc engine PSS is the shared-image contribution alone, and gives
+// the lower bound the JIT configurations are measured against.
+#let _sp3-interp-anon-exec-pss   = cell-value("cross-process-memory-sharing-aggregate.json", "interp-only", "anon_exec_pss_mb")
+#let _sp3-interp-per-proc-pss    = cell-value("cross-process-memory-sharing-aggregate.json", "interp-only", "per_proc_engine_pss_mb")
+#let sp3-interp-anon-exec-pss    = mb-str(_sp3-interp-anon-exec-pss)
+#let sp3-interp-per-proc-pss     = mb-str(_sp3-interp-per-proc-pss)
 
 
 // --- 7-9 binary-size impact (libxul-focused) ---

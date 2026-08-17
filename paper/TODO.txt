@@ -1,20 +1,18 @@
 
 
-- [ ] Improve the story unto it's final form. Don't bury the lead.
-      Must go into Salesman mode a bit.
 
-- [ ] Restricted execution on portability, to talk or not to talk
-      about pure JITless.
+- [ ] The Runtime Indirection Overhead measures cycles per-iteratoin. The
+      point we are trying to make is nuanced: These 8 micro-benchmarks are
+      designed to exercise the areas of AmberMonkey where our mechanism is the
+      most expesnive.
 
-- [ ] Re-run fossil 3-3, scrap it potentially if figure b) is really
-      poor, or at least address it, say we AOT compile self-hosted.
+      What we might consider including is a vertical partition - on the LHS the
+      graph remains exactly as is, on the RHS we have a second axis which is raw
+      performance on Speedometer3 and JetStream three comparing two configurations:
 
-- [ ] Distinguish Self-Hosted from builtins. V8 already does AOT
-      builtins. Self hosted is a larger set.
+      - 1) stock --no-ion v.s 2) ambermonkey --no-ion --aot. This restricts both
+        executino tiers to Baseline JIT compilation at maximum and incurs the
+        full area of the AOT image overhead on the system.
 
-- [ ] Expand the detail on CacheIR in the background. Especially on
-      the design which makes it ammenible to AOT - separation of
-      code and data.
-
-- [ ]
- 
+- [ ] Create master list of execution configurations. Apply ubitquitously to
+      all labels, figures, and prose in the paper.

@@ -109,29 +109,30 @@
   // Runtime type-specialization does not necessarily require runtime-code generation.
 
 $space$ JavaScript engines provide restricted-execution modes to disable
-guest-controlled just-in-time (JIT) compilation. While restricted execution
-is designed to reduce an engine's attack surface, disabling JIT compilation
-can substantially reduce performance. We find that inline-cache (IC) bodies
-can be compiled ahead of time (AOT) to reclaim lost JIT performance under
-restricted settings. Our analysis shows that dynamic IC requests concentrate
-in a small recurring set of stub bodies, making their inclusion into a fixed
-AOT image feasible. Our #ic-stub-bytes corpus serves #sp3-ic-hit-rate of
-IC-body requests on Speedometer 3.1 and #js3-ic-hit-rate on JetStream 3.0.
+guest-controlled just-in-time (JIT) compilation. Restricted execution aims
+to reduce an engine's attack surface, howeever, disabling JIT compilation
+can substantially reduce performance. We find that inline-cache (IC) bodies,
+among other Baseline JIT artifacts, can be compiled ahead of time (AOT) to
+reclaim JIT performance lost under restricted settings. Our analysis shows
+that dynamic IC requests concentrate in a small recurring set of stub
+bodies, making their inclusion into a fixed AOT image feasible. Our
+#ic-stub-bytes corpus serves #sp3-ic-hit-rate of IC-body requests on
+Speedometer 3.1 and #js3-ic-hit-rate on JetStream 3.0.
 
 We present AmberMonkey, a code-generation model that reuses SpiderMonkey's
-Baseline JIT to produce ahead-of-time native code. AmberMonkey lets selected
-artifact generation occur in a trusted build and packages the resulting
-instructions and metadata into a native image. JIT-generated instructions
-can embed pointers to data and code created for one runtime, coupling an
-artifact to it's producing runtime. AmberMonkey characterizs the nature of
-JIT coupling and provides relocation schemes. The native linker binds
-pointers engine symbols, while a Runtime Indirection Table (RIT) lets
-unresolvable symbols be attained through indirection. In a configuration
-which disables guest-triggered Baseline-function, IC-body, and optimizing
-compilation, AmberMonkey improves throughput by #sp3-aot-speedup over
-interpretation on Speedometer 3.1 and reachs #sp3-aot-default-fraction of
-default tiered-JIT throughput. Finally, our immutable AOT image avoids redundant
-JIT compilation across runtimes, reducing per-content-process engine PSS by
+Baseline JIT to produce ahead-of-time native code. AmberMonkey uses a two
+stage build to bootstrap AOT relocated artifacts into a native image which
+can be compiled into the final FireFox release. JIT-generated instructions
+typically embed pointers to data and code of the enclosing JavaScript
+runtime, coupling an artifact to a single process. AmberMonkey characterizs
+the nature of JIT coupling and provides relocation schemes. We defer a
+portion of symbol relocations to the native program linker, while a _Runtime
+Indirection Table_ (RIT) makes runtime symbols attainable through
+indirection at a #indirection-overhead overhead. Under restricted exection
+AmberMonkey improves throughput by #sp3-aot-speedup over interpretation on
+Speedometer 3.1 and reachs #sp3-aot-default-fraction of default tiered-JIT
+throughput. Finally, our immutable AOT image avoids redundant JIT
+compilation across runtimes, reducing per-content-process engine PSS by
 #jit-memory-reduction on Speedometer 3.1.
 
 ]
@@ -152,114 +153,107 @@ interpreted and JIT-optimized performance motivates an ahead-of-time (AOT)
 code generation model to recover throughput without guest-directed
 compilation.
 
-// The design space for AOT systems is large. A new execution tier must
-// implement JavaScript semantics and coordinate with the surrounding runtime,
-// creating another correctness-sensitive attack surface. For this reason,
-// relying on an existing implementation is particularly convenitent for
-// JavaScript as misinterpreting its intricate specification can expose
-// vulnerabilities @wang2026enhancedinsecurity.
-//
-// The first Futamura projection describes how one can derive compilation
-// through partial evaluation of an interpreter over a fixed program input
-// @futamura1971partial. This technique is attractive for AOT compilation since
-// it allows the interpreter to serve as a single source of semantic truth. The
-// Futamura projection, however, assumes that the guest program is available at
-// compile time. Browser workloads are dynamic, so a fixed browser image cannot
-// specialized over guest bytecode at run time without also requiring executable
-// memory.
+JavaScript's dynamic typing has restricted efforts to provide
+type-specialized native code in an AOT setting. Prior systems have therefore
+emphasized compilation without run-time type profiles. Hopc, for example,
+compiles complete JavaScript programs with a standalone AOT compiler
+@serrano2021javascriptaot. The first Futamura projection offers another
+route: specializing an interpreter for a fixed program derives a compiled
+implementation of that program @futamura1971partial. Deriving compilation
+from an interpreter also keeps the interpreter as the source of truth for
+language semantics rather than requiring a separate compiler backend. Weval
+applies this projection to SpiderMonkey's Portable Baseline Interpreter
+(PBL) and JavaScript bytecode stored in a WebAssembly snapshot
+@fallin2025weval. It specializes PBL's
+interpreter loops for both JavaScript bytecode and CacheIR, producing
+WebAssembly functions for guest functions and corpus IC bodies known during
+snapshot processing. The result is analogous to Baseline compilation: it
+eliminates interpreter dispatch while leaving run-time type specialization
+to inline caches (ICs).
 
-// The dynamic workload required of an engine running inside a browser prevents
-// prior techniques built upon SpiderMonkey from satisfying our aims. The
-// Portable Baseline Interpreter (PBL) handles JavaScript bytecode and CacheIR
-// in conjunction and was designed for partial evaluation in the WebAssembly
-// setting. Supplemented with a corpus of AOT Inline Cache stubs, Weval reports
-// a 2.77× geometric-mean speedup over the generic interpreter on Octane
-// @fallin2024weval. However, Weval wrelies on specializing program bytecode
-// present in a WebAssembly snapshot. Our AOT compilation step is constrained
-// to occur before any particular workload is anticipated.
+While these approaches differ in implementation, both derive their core
+performance improvmenets by assuming the guest program is available during
+AOT compilation. In contrast, a browser engines workload is dynamic. Our AOT
+design is therefore constrained to assume that JavaScript arrives after our
+executable image has been fixed. Restricted execution prohibits mapping
+any guest controlled data into executable memory at runtime.
 
-AmberMonkey attains AOT JIT artifacts by reusing SpiderMonkey's existing JIT
-generators as its AOT compiler rather than adding another JavaScript
-interpreter or compiler backend. This choice defers responsibility for
-semantic fidelity to the existing generators. By precompiling a corpus
-Inline Cache stubs, we show that run-time type specialization does not
-necessarily require run-time code generation. Type observations still occur
-at runtime, yet the native code describing a specialized JavaScript
-operation is optionally present in our AOT image.
+Even for typical environments where all JavaScript could be Baseline
+compiled, eagerly materializing all functions is still avoided. Across
+15,000 popular web pages, half of the JavaScript files studied contained at
+least 70% unused functions, accounting for 55% of their size
+@kupoluyi2022muzeel. Production engines consequently defer work for
+functions that may never execute. Lazy execution is so effective for modern
+JavaScript that SpiderMonkey avoids generating bytecode for many functions
+until their first execution, while V8 similarly defers full parsing and
+bytecode compilation @mozilla2026lazyparsing @v8preparser2019.
 
-AmberMonkey precompiles three classes of Baseline-tier artifacts. The
-Baseline Interpreter is deterministic for a fixed engine build, and
-SpiderMonkey's self-hosted JavaScript is available for Baseline compilation
-at build time. Our primary empirical finding is that inline-cache (IC) body
-identities recur across unrelated workloads. Application Baseline functions
-instead encode guest bytecode and rarely share exact identities across
-workloads. AmberMonkey therefore uses operation-level IC bodies as the unit
-of its cross-workload corpus. We collect IC bodies from the first
+These workload constraints raise two questions for AOT compilation in
+browser engines. First, which native artifacts are known before deployment
+or recur often enough across unrelated programs to justify inclusion in a
+bounded image? Second, can artifacts produced by an existing JIT generator
+execute in independently initialized runtimes despite embedding
+process-specific code and data addresses? A practical design must both
+select artifacts without knowing the deployed workload and remove their
+dependence on the runtime that generated them.
+
+To answer the first question, we characterize reuse among Baseline-tier
+artifacts. The Baseline Interpreter is deterministic for a fixed engine
+build, and SpiderMonkey's self-hosted JavaScript is available at build time.
+Application Baseline functions instead encode guest bytecode and rarely
+share exact identities across unrelated workloads. IC bodies recur because
+CacheIR separates executable bodies from the per-site data that specializes
+them @demooij2023cacheir. This separation already enables recurring bodies
+to be shared within one process; a fixed corpus can extend that reuse across
+processes and workloads. We construct the corpus from the first
 three-quarters of Mozilla's tp6 page set, which contains #tp6-site-count
-sites @mozilla2026tp6. We retain the final quarter as a held-out test set.
+sites, and retain the final quarter for held-out evaluation
+@mozilla2026tp6.
 
-Simply identifying JIT artifacts which recur across workloads ignores the
-primary code-generation issue preventing corss-process reuse. SpiderMonkey's
-JIT normally embeds addresses of data structures and code entry points
-created for a particular runtime. The presence of these pointers in native
-code prevents a straighforward reuse in a subsequent process. We call an
-artifact _runtime-independent_ when all of it's JavaScript runtime
-dependencies have been fully outlined and the same identical image bytes
-can be used in separately initialized runtimes.
+Per the second question, we are highly motivated to reuse existing code
+generation routines as to avoid introducing additional interpreations of the
+JavaScript specification. We elaborate on the security implications of doing
+so in section II.A. AmberMonkey runs SpiderMonkey's production Baseline
+generators during a trusted build, preserving their implementation of
+JavaScript semantics and their integration with existing engine interfaces.
+It precompiles the Baseline Interpreter, self-hosted Baseline functions, and
+a corpus of IC bodies. SpiderMonkey still observes types and selects IC
+specializations at run time, but matching native bodies come from an
+immutable image rather than run-time code generation.
 
-To acheive this, AmberMonkey chacterizes the nature of JIT coupling then
-resolves runtime addresses accordingly. We find that certain references can
-be re-written to use PC-relative control flow, similar to
-Position-Indepdent-Code (PIC) enforced in shared libraries. For another
-class of pointers, the native linker resolves private ELF symbols at link
-time. Lastly, for a residual remainder of symbols which can not be relocated
-at compile or link time, a per-runtime Runtime Indirection Table (RIT) is used. The
-RIT introduces a slight overhead of #indirection-overhead, however
-supplies addresses available only _after_ runtime initialization, such as
-[].
 
-During an initial AOT recording build, AmberMonkey captures Baseline
-functions and CacheIR stub bodies from SpiderMonkey's existing generators.
-Interchanging the emission of absolute pointers for stable indirections
-occurs transparently to high-level code-generation. AmberMonkey _intercepts_
-pointers and reverse-maps them to a known white-list of symbols, which each
-receieve a stable index in the RIT. AmberMonkey therefore is designed to
-provide AOT compatability without top-level code-generation accomodating
-to it specfically.
 
-Once runtime-independent artifacts can be captured, AmberMonkey serializes
-their code and metadata into a native image. At startup, AmberMonkey loads
-the image-backed code into existing JIT interfaces. Other than notifying the
-garbage collector not to reclaim the static memory backing AOT provided JIT
-objects, SpiderMonkey resumes regular execution. We therefore are able to
-transform transient JIT artifacts into persistent build artifacts without
-adding another JavaScript compiler or interpreter.
+To answer the second question, we make generated artifacts independent of
+the process that produced them. JIT-generated instructions normally embed
+addresses of data structures and code entry points created for one runtime.
+These addresses prevent the same native bytes from executing in a separately
+initialized runtime. We call an artifact _runtime-independent_ when it
+outlines these dependencies so that separately initialized runtimes can use
+identical image bytes.
 
-The key empirical observation of our work is that high IC coverage on unseen
-workloads can be attained primarily due to the principled design of an IR
-system. CacheIR @demooij2023cacheir explicitly separates code and data, and
-cannonicalzies property access, shape guards and accesses to other ephemeral
-values through stable indicies. SpiderMonkey's IC stubs interact with the
-dynamic engine state through stable references rather than by value. This
-design already enables intra-process sharing of recurring stub bodies.
-AmberMonkey extends this notion cross-process by removing IC stubs
-direct dependence on global runtime strucutres. On workloads excluded from
-corpus construction, the fixed corpus serves #sp3-ic-hit-rate of IC-body
-requests on Speedometer 3.1 and #js3-ic-hit-rate on JetStream 3.0.
+AmberMonkey classifies each embedded address by when it can be resolved.
+It rewrites some references as program-counter-relative control flow and
+delegates references to private ELF symbols to the native linker. For
+addresses available only after runtime initialization, a per-runtime
+_Runtime Indirection Table_ (RIT) provides stable indirections. A recording
+build captures code from the existing generators and converts recognized
+runtime pointers into these relocatable forms. AmberMonkey then serializes
+the instructions and metadata into a native image that the loader exposes
+through SpiderMonkey's existing JIT interfaces. This design turns transient
+JIT output into persistent build artifacts without requiring high-level code
+generators to support a separate AOT backend.
 
-// select and parameterize each IC specialization, but AmberMonkey
-// attaches a stub whose private fields use a matching image-backed body
-// instead of compiling that body. An IC-body miss uses the existing C++
-// fallback without generating code.
+On workloads excluded from corpus construction, the fixed corpus serves
+#sp3-ic-hit-rate of IC-body requests on Speedometer 3.1 and
+#js3-ic-hit-rate on JetStream 3.0. Our AOT hardened configuration combines
+this corpus with the AOT Baseline Interpreter and 236 self-hosted Baseline
+functions. Together, these artifacts improve Speedometer 3.1 throughput by
+#sp3-aot-speedup over bytecode-only execution and reach
+#sp3-aot-default-fraction of default tiered-JIT throughput. We also measure
+the run-time cost of indirection and the binary-size cost of embedding the
+corpus.
 
-Our AOT hardended configuration combines this corpus with the AOT Baseline
-Interpreter and 236 self-hosted Baseline functions. Together, these artifacts
-improve Speedometer 3.1 throughput by #sp3-aot-speedup over bytecode-only
-execution and reach #sp3-aot-default-fraction of default tiered-JIT
-throughput. We also measure the run-time cost of indirection and the
-binary-size cost of embedding the corpus.
-
-Lastly, our immutable AOT image changes how memory scales across runtimes.
+The immutable AOT image also changes how memory scales across runtimes.
 Run-time-generated Baseline and IC code occupies private anonymous mappings.
 AmberMonkey instead embeds selected artifacts as file-backed text, allowing
 runtimes to reuse one corpus and processes to share its physical pages. V8's
@@ -268,8 +262,7 @@ per-isolate builtin copies @gruber2018builtins. This benefit became more
 important as site isolation increased renderer-process counts after Spectre
 @kocher2019spectre. On Speedometer 3.1, AmberMonkey reduces per-content-process
 engine PSS by #jit-memory-reduction relative to runtime-generated Baseline
-code. This paper
-makes the following contributions:
+code. This paper makes the following contributions:
 
 #linebreak()
 
@@ -386,7 +379,7 @@ exploitable defects.
 
 #linebreak()
 
-#section[Structured IC Bodies as Reusable AOT Artifacts]
+#section[Structured IC Bodies and Reusable AOT Artifacts]
 
 #linebreak()
 
@@ -1117,7 +1110,7 @@ reduction. We do not compare this reduction against the default configuration,
 whose Ion tier changes the code profile.
 
 #figure(
-  table-from-json("7-11-aggregate.json"),
+  table-from-json("cross-process-memory-sharing-aggregate.json"),
   caption: [Speedometer 3.1 engine memory at Peak, per configuration.
     Values are means across three iterations. `.text.aot RSS/PSS` is the
     cross-process sharing ratio; higher is more shared. `anon-exec PSS`
@@ -1145,7 +1138,7 @@ Partial evaluation can derive compilation by specializing an interpreter to a
 fixed program @futamura1971partial. SpiderMonkey's Portable Baseline
 Interpreter (PBL) executes JavaScript bytecode with CacheIR; Weval specializes
 PBL for bytecode already present in a WebAssembly snapshot and combines it with
-AOT IC stubs @fallin2024weval. AmberMonkey instead builds its image before guest
+AOT IC stubs @fallin2025weval. AmberMonkey instead builds its image before guest
 programs are known, so it selects engine artifacts that are deterministic or
 recur across workloads rather than specializing guest bytecode.
 
@@ -1170,26 +1163,26 @@ application at build time. AmberMonkey instead targets a browser engine whose
 guest programs arrive after deployment and therefore precompiles reusable
 engine artifacts rather than complete applications.
 
-V8's embedded builtins place isolate-independent generated code in the engine
-binary and keep isolate-specific state separate, eliminating private builtin
-copies @gruber2018builtins. V8 Jitless instead disables run-time executable
-memory and executes JavaScript without its JIT tiers @gruber2019jitless.
-AmberMonkey applies file-backed sharing to Baseline artifacts and uses a fixed
-corpus to recover native execution under a similar restriction.
+V8's embedded builtins place isolate-independent generated code in the
+engine binary and keep isolate-specific state separate, eliminating private
+builtin copies @gruber2018builtins. V8 Jitless instead disables run-time
+executable memory and executes JavaScript without its JIT tiers
+@gruber2019jitless. AmberMonkey applies file-backed sharing to Baseline
+artifacts and uses a fixed corpus to recover native execution under a
+similar restriction.
 
 #section[Conclusion]
 
-We have presented AmberMonkey, a generic formulation of AOT
-compilation for a Baseline tier. Our preliminary evaluation indicated
-that three categories of artifact may be ammenible to AOT compilation
-for separate reasons. IC bodies recur across workloads. This recurrence
-enables a small corpus to achieve high dynamic coverage on unseen workloads.
-In contrast, the distribution for Baseline compiled functions we found
-much sparser across workloads. Nonehteless, we identified a ubiquitous
-corpus of self-hosted code, including JavaScript builtins, which we
-included in our corpus. Lastly we identified deterministic artifacts,
-namely the Baseline Interpreter, which we provided AOT to avoid
-redundant recompilations across processes.
+We have presented AmberMonkey, a generic formulation of AOT compilation for
+a Baseline tier. Our preliminary evaluation indicated that three categories
+of artifact may be ammenible to AOT compilation for separate reasons. IC
+bodies recur across workloads. This recurrence enables a small corpus to
+achieve high dynamic coverage on unseen workloads. In contrast, the
+distribution for Baseline compiled functions we found much sparser across
+workloads. Nonehteless, we identified a ubiquitous corpus of self-hosted
+code, including JavaScript builtins, which we included in our corpus. Lastly
+we identified deterministic artifacts, namely the Baseline Interpreter,
+which we provided AOT to avoid redundant recompilations across processes.
 
 #section[Future Work]
 
@@ -1199,11 +1192,22 @@ consumer process offers an interesting angle for offline optimization.
 
 #linebreak()
 
-1. _Eager IC stub attachment_: By using the initial engine invocation to collect profiling information regarding which IC stubs attach at particular script locations, we may be able to skip expsenive fallback stub routines through eager attachment. The utility of avoiding the fallback stub was elucidated by Choi et al @choi2019ric. An AOT format for IC stubs makes materializing the IC stub bodies convenient, however, a serializable format for stub paramaters such as Object Shapes forms a technical barrier.
+1. _Eager IC stub attachment_: By using the initial engine invocation to
+   collect profiling information regarding which IC stubs attach at
+   particular script locations, we may be able to skip expsenive fallback
+   stub routines through eager attachment. The utility of avoiding the
+   fallback stub was elucidated by Choi et al @choi2019ric. An AOT format
+   for IC stubs makes materializing the IC stub bodies convenient, however,
+   a serializable format for stub paramaters such as Object Shapes forms a
+   technical barrier.
 
 #linebreak()
 
-2. _Type Specialized Builtins_: Previous work done with V8's Torque DSL has demonstrated that type-specialized fast paths can improve the peformance of JavaScript builtins. Common operand-type patterns can establish early control flows independent from generic handlers, allowing more aggressive specialziation for Baseline code. 
+2. _Type Specialized Builtins_: Previous work done with V8's Torque DSL has
+   demonstrated that type-specialized fast paths can improve the peformance
+   of JavaScript builtins. Common operand-type patterns can establish early
+   control flows independent from generic handlers, allowing more aggressive
+   specialziation for Baseline code.
 
 #pagebreak()
 
