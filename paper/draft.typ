@@ -1141,22 +1141,41 @@ the executable `.text` output section.
 
 #section[Related Work]
 
-ShareJIT and AmberMonkey share native code under different trust and deployment
-assumptions. ShareJIT provides Android Runtime processes with a global cache of
-run-time-compiled methods @xu2018sharejit. A process looks up a method by its
-signature and bytecode, reuses an existing compilation when available, and may
-otherwise contribute code to the shared cache. ShareJIT also limits
-context-dependent optimization, including inlining, because specialization to
-one process reduces the code's applicability to other processes.
+Partial evaluation can derive compilation by specializing an interpreter to a
+fixed program @futamura1971partial. SpiderMonkey's Portable Baseline
+Interpreter (PBL) executes JavaScript bytecode with CacheIR; Weval specializes
+PBL for bytecode already present in a WebAssembly snapshot and combines it with
+AOT IC stubs @fallin2024weval. AmberMonkey instead builds its image before guest
+programs are known, so it selects engine artifacts that are deterministic or
+recur across workloads rather than specializing guest bytecode.
 
-AmberMonkey instead freezes selected Baseline artifacts during the trusted
-engine build. Firefox processes map the resulting instructions through the
-engine library, so they neither coordinate ownership of a global cache nor add
-guest-generated instructions at run time. Shared instructions obtain private
-execution state through per-runtime metadata and indirection tables. ShareJIT makes
-cross-process memory and compilation savings its primary objective, whereas
-AmberMonkey uses sharing as a consequence of making AOT artifacts immutable
-for restricted execution.
+_Reusable Inline Caching_ (RIC) carries context-independent IC information from
+one execution into later executions and eagerly repopulates IC state to avoid
+cold misses @choi2019ric. AmberMonkey currently attaches stubs only after a
+run-time observation. Its AOT corpus makes eager attachment easier because the
+native body is already materialized; the remaining problem is reconstructing
+site-specific fields such as shapes and slot offsets.
+
+ShareJIT provides Android Runtime processes with a global cache of
+runtime-compiled methods and limits context-dependent optimization to improve sharing
+@xu2018sharejit. AmberMonkey instead freezes selected Baseline artifacts during
+a trusted build. Firefox processes map them through the engine library without
+coordinating cache ownership or adding guest-generated instructions, while
+private metadata and indirection tables supply per-runtime state.
+
+GraalVM Native Image compiles reachable Java code under a closed-world
+assumption, while Dart AOT produces architecture-specific machine code for a
+specified Dart program @graalvm2026nativeimage @dart2025compile. Both know the
+application at build time. AmberMonkey instead targets a browser engine whose
+guest programs arrive after deployment and therefore precompiles reusable
+engine artifacts rather than complete applications.
+
+V8's embedded builtins place isolate-independent generated code in the engine
+binary and keep isolate-specific state separate, eliminating private builtin
+copies @gruber2018builtins. V8 Jitless instead disables run-time executable
+memory and executes JavaScript without its JIT tiers @gruber2019jitless.
+AmberMonkey applies file-backed sharing to Baseline artifacts and uses a fixed
+corpus to recover native execution under a similar restriction.
 
 #section[Conclusion]
 

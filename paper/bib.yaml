@@ -307,6 +307,14 @@ graalvm2026nativeimage:
   date: 2026
   url: "https://www.graalvm.org/latest/reference-manual/native-image/"
 
+dart2025compile:
+  type: web
+  title: "dart compile"
+  author:
+    - Dart
+  date: 2025-09-04
+  url: "https://dart.dev/tools/dart-compile"
+
 serrano2021javascriptaot:
   type: article
   title: "Of JavaScript AOT Compilation Performance"
