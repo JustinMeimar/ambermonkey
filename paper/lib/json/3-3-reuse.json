@@ -1,0 +1,45 @@
+{
+  "text_size": 7.5,
+  "cell_inset": 2.5,
+  "column_weights": [1.2, 1.0, 1.2, 1.2],
+  "columns": [
+    {
+      "key": "artifact",
+      "label": "Artifact",
+      "align": "left",
+      "format": "str"
+    },
+    {
+      "key": "union",
+      "label": "Union",
+      "align": "center",
+      "format": "str"
+    },
+    {
+      "key": "all_site_core",
+      "label": "All-site core",
+      "align": "center",
+      "format": "str"
+    },
+    {
+      "key": "dynamic_coverage",
+      "label": "Stub-entry coverage",
+      "align": "center",
+      "format": "str"
+    }
+  ],
+  "rows": [
+    [
+      "Baseline functions",
+      "4,967–5,555",
+      "53 (1.0–1.1%)",
+      "–"
+    ],
+    [
+      "IC bodies",
+      "1,387–1,396",
+      "290 (20.8–20.9%)",
+      "78.9–99.9%"
+    ]
+  ]
+}

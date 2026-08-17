@@ -1,0 +1,568 @@
+{
+  "kinds": {
+    "ic": {
+      "targets": [
+        {
+          "site": "amazon",
+          "target_count": 976,
+          "covered": 957,
+          "pct": 98.05327868852459
+        },
+        {
+          "site": "bing-search",
+          "target_count": 910,
+          "covered": 892,
+          "pct": 98.02197802197803
+        },
+        {
+          "site": "buzzfeed",
+          "target_count": 1054,
+          "covered": 1036,
+          "pct": 98.292220113852
+        },
+        {
+          "site": "cnn",
+          "target_count": 849,
+          "covered": 846,
+          "pct": 99.64664310954063
+        },
+        {
+          "site": "ebay",
+          "target_count": 1059,
+          "covered": 1039,
+          "pct": 98.11142587346554
+        },
+        {
+          "site": "espn",
+          "target_count": 1107,
+          "covered": 1084,
+          "pct": 97.92231255645889
+        },
+        {
+          "site": "expedia",
+          "target_count": 1013,
+          "covered": 999,
+          "pct": 98.61796643632773
+        },
+        {
+          "site": "facebook",
+          "target_count": 929,
+          "covered": 922,
+          "pct": 99.2465016146394
+        },
+        {
+          "site": "fandom",
+          "target_count": 917,
+          "covered": 897,
+          "pct": 97.81897491821157
+        },
+        {
+          "site": "google-docs",
+          "target_count": 1019,
+          "covered": 1002,
+          "pct": 98.33169774288518
+        },
+        {
+          "site": "google-mail",
+          "target_count": 996,
+          "covered": 985,
+          "pct": 98.89558232931726
+        },
+        {
+          "site": "google-search",
+          "target_count": 969,
+          "covered": 959,
+          "pct": 98.96800825593395
+        },
+        {
+          "site": "google-slides",
+          "target_count": 986,
+          "covered": 975,
+          "pct": 98.88438133874239
+        },
+        {
+          "site": "imdb",
+          "target_count": 1000,
+          "covered": 989,
+          "pct": 98.9
+        },
+        {
+          "site": "imgur",
+          "target_count": 1089,
+          "covered": 1068,
+          "pct": 98.07162534435261
+        },
+        {
+          "site": "instagram",
+          "target_count": 985,
+          "covered": 981,
+          "pct": 99.59390862944163
+        },
+        {
+          "site": "linkedin",
+          "target_count": 984,
+          "covered": 947,
+          "pct": 96.23983739837398
+        },
+        {
+          "site": "microsoft",
+          "target_count": 866,
+          "covered": 858,
+          "pct": 99.07621247113164
+        },
+        {
+          "site": "netflix",
+          "target_count": 903,
+          "covered": 899,
+          "pct": 99.55703211517165
+        },
+        {
+          "site": "nytimes",
+          "target_count": 1074,
+          "covered": 1049,
+          "pct": 97.67225325884544
+        },
+        {
+          "site": "office",
+          "target_count": 966,
+          "covered": 947,
+          "pct": 98.03312629399586
+        },
+        {
+          "site": "outlook",
+          "target_count": 955,
+          "covered": 939,
+          "pct": 98.32460732984293
+        },
+        {
+          "site": "paypal",
+          "target_count": 735,
+          "covered": 735,
+          "pct": 100.0
+        },
+        {
+          "site": "pinterest",
+          "target_count": 878,
+          "covered": 872,
+          "pct": 99.31662870159454
+        }
+      ],
+      "median_pct": 98.47483208960645,
+      "min_pct": 96.23983739837398,
+      "max_pct": 100.0
+    },
+    "blfun": {
+      "targets": [
+        {
+          "site": "amazon",
+          "target_count": 899,
+          "covered": 455,
+          "pct": 50.61179087875417
+        },
+        {
+          "site": "bing-search",
+          "target_count": 773,
+          "covered": 420,
+          "pct": 54.33376455368693
+        },
+        {
+          "site": "buzzfeed",
+          "target_count": 1968,
+          "covered": 767,
+          "pct": 38.97357723577236
+        },
+        {
+          "site": "cnn",
+          "target_count": 500,
+          "covered": 411,
+          "pct": 82.2
+        },
+        {
+          "site": "ebay",
+          "target_count": 1125,
+          "covered": 633,
+          "pct": 56.266666666666666
+        },
+        {
+          "site": "espn",
+          "target_count": 1291,
+          "covered": 544,
+          "pct": 42.13787761425252
+        },
+        {
+          "site": "expedia",
+          "target_count": 1977,
+          "covered": 509,
+          "pct": 25.746079919069295
+        },
+        {
+          "site": "facebook",
+          "target_count": 1344,
+          "covered": 793,
+          "pct": 59.00297619047619
+        },
+        {
+          "site": "fandom",
+          "target_count": 781,
+          "covered": 494,
+          "pct": 63.25224071702945
+        },
+        {
+          "site": "google-docs",
+          "target_count": 3500,
+          "covered": 484,
+          "pct": 13.82857142857143
+        },
+        {
+          "site": "google-mail",
+          "target_count": 1947,
+          "covered": 548,
+          "pct": 28.145865434001028
+        },
+        {
+          "site": "google-search",
+          "target_count": 1172,
+          "covered": 480,
+          "pct": 40.955631399317404
+        },
+        {
+          "site": "google-slides",
+          "target_count": 2678,
+          "covered": 559,
+          "pct": 20.87378640776699
+        },
+        {
+          "site": "imdb",
+          "target_count": 1323,
+          "covered": 612,
+          "pct": 46.25850340136054
+        },
+        {
+          "site": "imgur",
+          "target_count": 1728,
+          "covered": 681,
+          "pct": 39.40972222222222
+        },
+        {
+          "site": "instagram",
+          "target_count": 1460,
+          "covered": 815,
+          "pct": 55.821917808219176
+        },
+        {
+          "site": "linkedin",
+          "target_count": 1791,
+          "covered": 454,
+          "pct": 25.34896705750977
+        },
+        {
+          "site": "microsoft",
+          "target_count": 558,
+          "covered": 411,
+          "pct": 73.65591397849462
+        },
+        {
+          "site": "netflix",
+          "target_count": 1093,
+          "covered": 465,
+          "pct": 42.54345837145471
+        },
+        {
+          "site": "nytimes",
+          "target_count": 1849,
+          "covered": 663,
+          "pct": 35.857220118983236
+        },
+        {
+          "site": "office",
+          "target_count": 1165,
+          "covered": 569,
+          "pct": 48.8412017167382
+        },
+        {
+          "site": "outlook",
+          "target_count": 1480,
+          "covered": 561,
+          "pct": 37.9054054054054
+        },
+        {
+          "site": "paypal",
+          "target_count": 375,
+          "covered": 375,
+          "pct": 100.0
+        },
+        {
+          "site": "pinterest",
+          "target_count": 1066,
+          "covered": 403,
+          "pct": 37.80487804878049
+        }
+      ],
+      "median_pct": 42.34066799285361,
+      "min_pct": 13.82857142857143,
+      "max_pct": 100.0
+    }
+  },
+  "columns": [
+    {
+      "key": "site",
+      "label": "Site",
+      "align": "left",
+      "format": "str"
+    },
+    {
+      "key": "ic_pct",
+      "label": "IC coverage",
+      "align": "right",
+      "format": "percent-str"
+    },
+    {
+      "key": "ic_covered",
+      "label": "IC covered",
+      "align": "right",
+      "format": "int"
+    },
+    {
+      "key": "ic_total",
+      "label": "IC observed",
+      "align": "right",
+      "format": "int"
+    },
+    {
+      "key": "blfun_pct",
+      "label": "Blfun coverage",
+      "align": "right",
+      "format": "percent-str"
+    },
+    {
+      "key": "blfun_covered",
+      "label": "Blfun covered",
+      "align": "right",
+      "format": "int"
+    },
+    {
+      "key": "blfun_total",
+      "label": "Blfun observed",
+      "align": "right",
+      "format": "int"
+    }
+  ],
+  "rows": [
+    [
+      "amazon",
+      "98.1%",
+      957,
+      976,
+      "50.6%",
+      455,
+      899
+    ],
+    [
+      "bing-search",
+      "98.0%",
+      892,
+      910,
+      "54.3%",
+      420,
+      773
+    ],
+    [
+      "buzzfeed",
+      "98.3%",
+      1036,
+      1054,
+      "39.0%",
+      767,
+      1968
+    ],
+    [
+      "cnn",
+      "99.6%",
+      846,
+      849,
+      "82.2%",
+      411,
+      500
+    ],
+    [
+      "ebay",
+      "98.1%",
+      1039,
+      1059,
+      "56.3%",
+      633,
+      1125
+    ],
+    [
+      "espn",
+      "97.9%",
+      1084,
+      1107,
+      "42.1%",
+      544,
+      1291
+    ],
+    [
+      "expedia",
+      "98.6%",
+      999,
+      1013,
+      "25.7%",
+      509,
+      1977
+    ],
+    [
+      "facebook",
+      "99.2%",
+      922,
+      929,
+      "59.0%",
+      793,
+      1344
+    ],
+    [
+      "fandom",
+      "97.8%",
+      897,
+      917,
+      "63.3%",
+      494,
+      781
+    ],
+    [
+      "google-docs",
+      "98.3%",
+      1002,
+      1019,
+      "13.8%",
+      484,
+      3500
+    ],
+    [
+      "google-mail",
+      "98.9%",
+      985,
+      996,
+      "28.1%",
+      548,
+      1947
+    ],
+    [
+      "google-search",
+      "99.0%",
+      959,
+      969,
+      "41.0%",
+      480,
+      1172
+    ],
+    [
+      "google-slides",
+      "98.9%",
+      975,
+      986,
+      "20.9%",
+      559,
+      2678
+    ],
+    [
+      "imdb",
+      "98.9%",
+      989,
+      1000,
+      "46.3%",
+      612,
+      1323
+    ],
+    [
+      "imgur",
+      "98.1%",
+      1068,
+      1089,
+      "39.4%",
+      681,
+      1728
+    ],
+    [
+      "instagram",
+      "99.6%",
+      981,
+      985,
+      "55.8%",
+      815,
+      1460
+    ],
+    [
+      "linkedin",
+      "96.2%",
+      947,
+      984,
+      "25.3%",
+      454,
+      1791
+    ],
+    [
+      "microsoft",
+      "99.1%",
+      858,
+      866,
+      "73.7%",
+      411,
+      558
+    ],
+    [
+      "netflix",
+      "99.6%",
+      899,
+      903,
+      "42.5%",
+      465,
+      1093
+    ],
+    [
+      "nytimes",
+      "97.7%",
+      1049,
+      1074,
+      "35.9%",
+      663,
+      1849
+    ],
+    [
+      "office",
+      "98.0%",
+      947,
+      966,
+      "48.8%",
+      569,
+      1165
+    ],
+    [
+      "outlook",
+      "98.3%",
+      939,
+      955,
+      "37.9%",
+      561,
+      1480
+    ],
+    [
+      "paypal",
+      "100.0%",
+      735,
+      735,
+      "100.0%",
+      375,
+      375
+    ],
+    [
+      "pinterest",
+      "99.3%",
+      872,
+      878,
+      "37.8%",
+      403,
+      1066
+    ]
+  ]
+}

@@ -1,0 +1,42 @@
+{
+  "columns": [
+    {
+      "key": "metric",
+      "label": "Metric",
+      "align": "left",
+      "format": "str"
+    },
+    {
+      "key": "tp6_test",
+      "label": "tp6-Test",
+      "align": "right",
+      "format": "str"
+    },
+    {
+      "key": "speedometer3",
+      "label": "Speedometer 3.1",
+      "align": "right",
+      "format": "str"
+    },
+    {
+      "key": "jetstream3",
+      "label": "JetStream 3.0",
+      "align": "right",
+      "format": "str"
+    }
+  ],
+  "rows": [
+    [
+      "Corpus size",
+      "1",
+      "1",
+      "1"
+    ],
+    [
+      "Processes loaded",
+      "66",
+      "7",
+      "7"
+    ]
+  ]
+}

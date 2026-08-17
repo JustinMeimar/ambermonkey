@@ -1,0 +1,50 @@
+{
+  "columns": [
+    {
+      "key": "configuration",
+      "label": "Configuration",
+      "align": "left",
+      "format": "str"
+    },
+    {
+      "key": "pt_load_bytes",
+      "label": "PT_LOAD bytes",
+      "align": "right",
+      "format": "int"
+    },
+    {
+      "key": "corpus_files_bytes",
+      "label": "Corpus-file bytes",
+      "align": "right",
+      "format": "int"
+    },
+    {
+      "key": "packed_image_bytes",
+      "label": "Packed-image bytes",
+      "align": "right",
+      "format": "int"
+    },
+    {
+      "key": "linked_image_bytes",
+      "label": "Linked-image bytes",
+      "align": "right",
+      "format": "int"
+    }
+  ],
+  "rows": [
+    [
+      "Default JIT",
+      186280648,
+      0,
+      0,
+      0
+    ],
+    [
+      "Default JIT + AOT",
+      187320184,
+      0,
+      1003184,
+      1003520
+    ]
+  ]
+}

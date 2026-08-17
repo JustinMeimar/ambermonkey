@@ -1,0 +1,138 @@
+{
+  "columns": [
+    {
+      "key": "config",
+      "label": "config",
+      "format": "str",
+      "align": "left"
+    },
+    {
+      "key": "marker",
+      "label": "marker",
+      "format": "str",
+      "align": "left"
+    },
+    {
+      "key": "n_procs",
+      "label": "content procs",
+      "format": "int",
+      "align": "right"
+    },
+    {
+      "key": "engine_pss_mb",
+      "label": "engine PSS (MB)",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "anon_exec_pss_mb",
+      "label": "anon-exec PSS",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "libxul_exec_pss_mb",
+      "label": ".text.aot PSS",
+      "format": "float",
+      "align": "right"
+    }
+  ],
+  "rows": [
+    [
+      "awsy-tp6-stock",
+      "TabsOpen",
+      64,
+      97.121,
+      18.372,
+      78.75
+    ],
+    [
+      "awsy-tp6-stock",
+      "TabsOpenSettled",
+      63,
+      88.009,
+      10.126,
+      77.883
+    ],
+    [
+      "awsy-tp6-stock",
+      "TabsOpenForceGC",
+      60,
+      141.024,
+      9.129,
+      131.895
+    ],
+    [
+      "awsy-tp6-stock",
+      "TabsClosedForceGC",
+      6,
+      43.171,
+      0.109,
+      43.062
+    ],
+    [
+      "awsy-tp6-stock-baseline",
+      "TabsOpen",
+      64,
+      99.25,
+      20.809,
+      78.442
+    ],
+    [
+      "awsy-tp6-stock-baseline",
+      "TabsOpenSettled",
+      63,
+      88.115,
+      10.332,
+      77.783
+    ],
+    [
+      "awsy-tp6-stock-baseline",
+      "TabsOpenForceGC",
+      60,
+      132.92,
+      8.816,
+      124.104
+    ],
+    [
+      "awsy-tp6-stock-baseline",
+      "TabsClosedForceGC",
+      6,
+      43.18,
+      0.109,
+      43.07
+    ],
+    [
+      "awsy-tp6-aot-only",
+      "TabsOpen",
+      64,
+      99.853,
+      21.247,
+      78.606
+    ],
+    [
+      "awsy-tp6-aot-only",
+      "TabsOpenSettled",
+      63,
+      87.384,
+      10.356,
+      77.028
+    ],
+    [
+      "awsy-tp6-aot-only",
+      "TabsOpenForceGC",
+      59,
+      131.929,
+      8.067,
+      123.862
+    ],
+    [
+      "awsy-tp6-aot-only",
+      "TabsClosedForceGC",
+      6,
+      43.408,
+      0.109,
+      43.299
+    ]
+  ]
+}

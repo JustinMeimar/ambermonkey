@@ -1,0 +1,240 @@
+{
+  "columns": [
+    {
+      "key": "bench",
+      "label": "microbenchmark",
+      "align": "left",
+      "format": "str"
+    },
+    {
+      "key": "runtime_baseline_cpi",
+      "label": "runtime Baseline cyc/it",
+      "align": "right",
+      "format": "float"
+    },
+    {
+      "key": "aot_baseline_cpi",
+      "label": "AOT Baseline cyc/it",
+      "align": "right",
+      "format": "float"
+    },
+    {
+      "key": "aot_over_runtime_cyc",
+      "label": "opt\u2212default",
+      "align": "right",
+      "format": "float"
+    },
+    {
+      "key": "aot_over_runtime_ratio",
+      "label": "opt/default",
+      "align": "right",
+      "format": "float"
+    },
+    {
+      "key": "aot_over_runtime_overhead",
+      "label": "opt overhead",
+      "align": "right",
+      "format": "percent"
+    },
+    {
+      "key": "runtime_baseline_ipi",
+      "label": "runtime Baseline ins/it",
+      "align": "right",
+      "format": "float"
+    },
+    {
+      "key": "aot_baseline_ipi",
+      "label": "AOT Baseline ins/it",
+      "align": "right",
+      "format": "float"
+    },
+    {
+      "key": "aot_over_runtime_ipi_overhead",
+      "label": "opt ins overhead",
+      "align": "right",
+      "format": "percent"
+    },
+    {
+      "key": "runtime_baseline_ipc",
+      "label": "runtime Baseline IPC",
+      "align": "right",
+      "format": "float"
+    },
+    {
+      "key": "aot_baseline_ipc",
+      "label": "AOT Baseline IPC",
+      "align": "right",
+      "format": "float"
+    },
+    {
+      "key": "aot_over_runtime_ipc_delta",
+      "label": "opt IPC \u0394",
+      "align": "right",
+      "format": "percent"
+    }
+  ],
+  "rows": [
+    [
+      "interrupt-check",
+      28.082024227304544,
+      88.51228081647501,
+      60.43025658917047,
+      3.151919537567142,
+      2.151919537567142,
+      96.55139809760908,
+      283.2562541871333,
+      1.9337353965685105,
+      3.557841901847331,
+      3.2060433943387068,
+      -0.0988797471090439
+    ],
+    [
+      "stack-check",
+      51.139538574363634,
+      134.54898209963636,
+      83.40944352527274,
+      2.631016740676774,
+      1.631016740676774,
+      190.48241921836362,
+      465.1250300574546,
+      1.4418265578843186,
+      3.7611407953834917,
+      3.4589927139256873,
+      -0.08033415867565175
+    ],
+    [
+      "prebarrier",
+      29.593970163818184,
+      90.52486316072726,
+      60.93089299690908,
+      3.058895533773419,
+      2.058895533773419,
+      106.93667786581818,
+      290.1247338283636,
+      1.7130516827201778,
+      3.770837900331232,
+      3.2082031324333724,
+      -0.1492068295612594
+    ],
+    [
+      "vm-call",
+      207.54269704545456,
+      326.91582149090914,
+      119.37312444545458,
+      1.5751738131229465,
+      0.5751738131229465,
+      840.4847685045454,
+      1163.0676304772728,
+      0.38380572029483817,
+      4.07669329472209,
+      3.5753325684304476,
+      -0.12298220396926385
+    ],
+    [
+      "abi-call",
+      45.71861143583334,
+      117.5516909775,
+      71.83307954166666,
+      2.5711999399300507,
+      1.5711999399300507,
+      160.25931126291667,
+      368.73896253125,
+      1.300889474848097,
+      3.7913994446633867,
+      3.0991374980532513,
+      -0.1825874473829272
+    ],
+    [
+      "arith",
+      33.205270140454545,
+      95.05206517181819,
+      61.84679503136364,
+      2.86255961086173,
+      1.8625596108617302,
+      120.86466683454546,
+      317.5246403222727,
+      1.6271088866437684,
+      3.7521528150196843,
+      3.293116769783362,
+      -0.12233937898233349
+    ],
+    [
+      "prop-load",
+      35.294468994545454,
+      100.12306253272727,
+      64.82859353818182,
+      2.836791865269334,
+      1.8367918652693338,
+      117.1378346290909,
+      321.6232817672727,
+      1.745682321904543,
+      3.467919299028397,
+      3.215281649508614,
+      -0.07284992173565397
+    ],
+    [
+      "array-load",
+      37.02562318142857,
+      115.05580165904762,
+      78.03017847761905,
+      3.107464284807978,
+      2.107464284807978,
+      144.02116626238094,
+      389.6234273795238,
+      1.7053205962080544,
+      3.9695914503824437,
+      3.3932904362865974,
+      -0.14517892364976837
+    ],
+    [
+      "Geometric mean",
+      45.22469250355441,
+      120.80644553043632,
+      75.58175302688191,
+      2.6712496833658204,
+      1.6712496833658204,
+      164.65105520812003,
+      399.763826335636,
+      1.4279457294114013,
+      3.763945913646973,
+      3.302920892798423,
+      -0.12248449670251826
+    ]
+  ],
+  "benchmark_count": 8,
+  "targeted_benchmark_count": 5,
+  "control_benchmark_count": 3,
+  "repetitions_per_configuration": 10,
+  "repetitions_observed": [
+    1,
+    2,
+    10
+  ],
+  "primary_metric": "user cycles per semantic loop iteration",
+  "counter_events": [
+    "cycles:u",
+    "instructions:u",
+    "ref-cycles:u"
+  ],
+  "aggregate": "geometric mean of per-benchmark AOT/runtime ratios",
+  "samples_per_variant": {
+    "abi-call-default": 24,
+    "abi-call-opt": 24,
+    "arith-default": 22,
+    "arith-opt": 22,
+    "array-load-default": 21,
+    "array-load-opt": 21,
+    "interrupt-check-default": 22,
+    "interrupt-check-opt": 12,
+    "prebarrier-default": 11,
+    "prebarrier-opt": 11,
+    "prop-load-default": 11,
+    "prop-load-opt": 11,
+    "stack-check-default": 11,
+    "stack-check-opt": 11,
+    "vm-call-default": 11,
+    "vm-call-opt": 11
+  },
+  "empty_observations": 2,
+  "skipped_observations": 0
+}

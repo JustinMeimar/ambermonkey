@@ -1,0 +1,54 @@
+{
+  "columns": [
+    {
+      "key": "metric",
+      "label": "Metric",
+      "align": "left",
+      "format": "str"
+    },
+    {
+      "key": "tp6_test",
+      "label": "tp6-Test",
+      "align": "right",
+      "format": "str"
+    },
+    {
+      "key": "speedometer3",
+      "label": "Speedometer 3.1",
+      "align": "right",
+      "format": "str"
+    },
+    {
+      "key": "jetstream3",
+      "label": "JetStream 3.0",
+      "align": "right",
+      "format": "str"
+    }
+  ],
+  "rows": [
+    [
+      "Corpus size",
+      "236",
+      "236",
+      "236"
+    ],
+    [
+      "Installed",
+      "71",
+      "80",
+      "104"
+    ],
+    [
+      "Utilization",
+      "30.1%",
+      "33.9%",
+      "44.1%"
+    ],
+    [
+      "AOT hit rate",
+      "11.7%",
+      "43.7%",
+      "5.8%"
+    ]
+  ]
+}

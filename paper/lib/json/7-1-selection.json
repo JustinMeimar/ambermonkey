@@ -1,0 +1,21 @@
+{
+  "training_site_count": 32,
+  "selected_threshold": 0.1,
+  "self_hosted_function_count": 236,
+  "text_size": 8,
+  "cell_inset": 3,
+  "columns": [
+    {"key": "threshold", "label": "Threshold", "align": "right", "format": "percent"},
+    {"key": "ic_stubs", "label": "IC bodies", "align": "right", "format": "int"},
+    {"key": "ic_kb", "label": "IC bodies (KB)", "align": "right", "format": "int"}
+  ],
+  "rows": [
+    [1.0, 731, 273],
+    [0.75, 789, 298],
+    [0.5, 887, 342],
+    [0.25, 1059, 419],
+    [0.1, 1347, 542],
+    [0.05, 1491, 608],
+    [0.0, 1870, 785]
+  ]
+}

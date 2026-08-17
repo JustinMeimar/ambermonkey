@@ -1,0 +1,20 @@
+
+
+- [ ] Improve the story unto it's final form. Don't bury the lead.
+      Must go into Salesman mode a bit.
+
+- [ ] Restricted execution on portability, to talk or not to talk
+      about pure JITless.
+
+- [ ] Re-run fossil 3-3, scrap it potentially if figure b) is really
+      poor, or at least address it, say we AOT compile self-hosted.
+
+- [ ] Distinguish Self-Hosted from builtins. V8 already does AOT
+      builtins. Self hosted is a larger set.
+
+- [ ] Expand the detail on CacheIR in the background. Especially on
+      the design which makes it ammenible to AOT - separation of
+      code and data.
+
+- [ ]
+ 

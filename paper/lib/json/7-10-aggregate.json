@@ -1,0 +1,102 @@
+{
+  "columns": [
+    {
+      "key": "config",
+      "label": "config",
+      "format": "str",
+      "align": "left"
+    },
+    {
+      "key": "checkpoint",
+      "label": "checkpoint",
+      "format": "str",
+      "align": "left"
+    },
+    {
+      "key": "n_procs",
+      "label": "content procs",
+      "format": "int",
+      "align": "right"
+    },
+    {
+      "key": "anon_exec_pss_mb",
+      "label": "anon-exec PSS (MB)",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "anon_exec_uss_mb",
+      "label": "anon-exec USS (MB)",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "libxul_exec_pss_mb",
+      "label": ".text.aot PSS (MB)",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "libxul_exec_rss_mb",
+      "label": ".text.aot RSS (MB)",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "engine_pss_mb",
+      "label": "engine PSS total (MB)",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "per_proc_engine_pss_mb",
+      "label": "engine PSS / proc (MB)",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "reduction_vs_stock",
+      "label": "engine-PSS \u0394 vs stock",
+      "format": "percent",
+      "align": "right"
+    }
+  ],
+  "rows": [
+    [
+      "awsy-tp6-stock",
+      "TabsOpenForceGC",
+      60,
+      9.129,
+      9.129,
+      131.895,
+      2372.019,
+      141.024,
+      2.3504,
+      0.0
+    ],
+    [
+      "awsy-tp6-stock-baseline",
+      "TabsOpenForceGC",
+      60,
+      8.816,
+      8.816,
+      124.104,
+      2306.957,
+      132.92,
+      2.2153,
+      0.0575
+    ],
+    [
+      "awsy-tp6-aot-only",
+      "TabsOpenForceGC",
+      60,
+      8.59,
+      8.59,
+      121.978,
+      2219.762,
+      130.568,
+      2.1761,
+      0.0741
+    ]
+  ]
+}

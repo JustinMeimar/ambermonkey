@@ -1,0 +1,69 @@
+{
+  "train_site_count": 24,
+  "test_site_count": 8,
+  "total_site_count": 32,
+  "self_hosted_function_count": 236,
+  "train_union_ic_count": 1758,
+  "train_union_ic_bytes": 731939,
+  "train_singleton_ic_count": 342,
+  "train_singleton_ic_bytes": 157863,
+  "train_recurrent_ic_count": 1416,
+  "train_recurrent_ic_bytes": 574076,
+  "columns": [
+    {
+      "key": "threshold",
+      "label": "Threshold",
+      "align": "right",
+      "format": "percent"
+    },
+    {
+      "key": "ic_stubs",
+      "label": "IC bodies",
+      "align": "right",
+      "format": "int"
+    },
+    {
+      "key": "ic_kb",
+      "label": "IC bodies (KB)",
+      "align": "right",
+      "format": "int"
+    }
+  ],
+  "rows": [
+    [
+      1.0,
+      725,
+      271
+    ],
+    [
+      0.75,
+      804,
+      304
+    ],
+    [
+      0.5,
+      900,
+      350
+    ],
+    [
+      0.25,
+      1077,
+      427
+    ],
+    [
+      0.1,
+      1416,
+      574
+    ],
+    [
+      0.05,
+      1758,
+      732
+    ],
+    [
+      0.0,
+      1758,
+      732
+    ]
+  ]
+}

@@ -1,0 +1,71 @@
+{
+  "columns": [
+    {
+      "key": "variant",
+      "label": "Variant",
+      "format": "str",
+      "align": "left"
+    },
+    {
+      "key": "score",
+      "label": "Score",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "score_stdev",
+      "label": "Score stdev",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "ratio_over_interp",
+      "label": "vs interp-only",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "ratio_over_default",
+      "label": "vs default",
+      "format": "float",
+      "align": "right"
+    }
+  ],
+  "rows": [
+    [
+      "interp-only",
+      4.984,
+      0.019,
+      1.0,
+      0.3814
+    ],
+    [
+      "aot-corpus",
+      7.508,
+      0.047,
+      1.5064,
+      0.5745
+    ],
+    [
+      "default-no-ion",
+      11.395,
+      0.076,
+      2.2864,
+      0.872
+    ],
+    [
+      "default",
+      13.068,
+      0.057,
+      2.6221,
+      1.0
+    ]
+  ],
+  "aot_over_interp_ratio": 1.5064205457463884,
+  "aot_over_interp_speedup": 0.5064205457463884,
+  "aot_over_default_ratio": 0.5745185563065935,
+  "source_fossil": "7-3-ambermonkey-perf",
+  "workload": "speedometer3",
+  "runs_per_variant": 3,
+  "page_cycles_per_run": 3
+}

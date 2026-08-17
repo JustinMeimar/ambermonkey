@@ -1,0 +1,264 @@
+{
+  "columns": [
+    {
+      "key": "config",
+      "label": "config",
+      "format": "str",
+      "align": "left"
+    },
+    {
+      "key": "bucket",
+      "label": "bucket",
+      "format": "str",
+      "align": "left"
+    },
+    {
+      "key": "pss_mb",
+      "label": "PSS (MB)",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "uss_mb",
+      "label": "USS (MB)",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "rss_mb",
+      "label": "RSS (MB, \u03a3 procs)",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "shared_clean_mb",
+      "label": "shared clean (MB)",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "private_dirty_mb",
+      "label": "private dirty (MB)",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "vma_count",
+      "label": "VMAs (\u03a3)",
+      "format": "int",
+      "align": "right"
+    }
+  ],
+  "rows": [
+    [
+      "awsy-tp6-stock",
+      "libxul_exec",
+      131.895,
+      4.398,
+      2372.019,
+      2367.621,
+      0,
+      41
+    ],
+    [
+      "awsy-tp6-stock",
+      "libxul_rodata",
+      52.276,
+      7.27,
+      872.887,
+      644.836,
+      5.519,
+      82
+    ],
+    [
+      "awsy-tp6-stock",
+      "libxul_rw",
+      10.441,
+      9.278,
+      37.154,
+      0,
+      9.278,
+      41
+    ],
+    [
+      "awsy-tp6-stock",
+      "anon_exec",
+      9.129,
+      9.129,
+      9.129,
+      0,
+      9.129,
+      94
+    ],
+    [
+      "awsy-tp6-stock",
+      "anon_rw",
+      2148.675,
+      2146.383,
+      2204.89,
+      0,
+      2146.383,
+      8595
+    ],
+    [
+      "awsy-tp6-stock",
+      "other_file",
+      94.707,
+      51.859,
+      1144.645,
+      981.297,
+      37.184,
+      18978
+    ],
+    [
+      "awsy-tp6-stock",
+      "other_anon",
+      0,
+      0,
+      0,
+      0,
+      0,
+      6042
+    ],
+    [
+      "awsy-tp6-stock-baseline",
+      "libxul_exec",
+      124.104,
+      4.41,
+      2306.957,
+      2302.547,
+      0,
+      40
+    ],
+    [
+      "awsy-tp6-stock-baseline",
+      "libxul_rodata",
+      49.812,
+      7.391,
+      856.785,
+      634.133,
+      5.519,
+      80
+    ],
+    [
+      "awsy-tp6-stock-baseline",
+      "libxul_rw",
+      10.094,
+      8.993,
+      36.248,
+      0,
+      8.993,
+      40
+    ],
+    [
+      "awsy-tp6-stock-baseline",
+      "anon_exec",
+      8.816,
+      8.816,
+      8.816,
+      0,
+      8.816,
+      93
+    ],
+    [
+      "awsy-tp6-stock-baseline",
+      "anon_rw",
+      2113.576,
+      2111.277,
+      2172.906,
+      0,
+      2111.277,
+      8388
+    ],
+    [
+      "awsy-tp6-stock-baseline",
+      "other_file",
+      77.495,
+      41.316,
+      1108.598,
+      958.688,
+      25.332,
+      18515
+    ],
+    [
+      "awsy-tp6-stock-baseline",
+      "other_anon",
+      0,
+      0,
+      0,
+      0,
+      0,
+      5843
+    ],
+    [
+      "awsy-tp6-aot-only",
+      "libxul_exec",
+      123.862,
+      3.215,
+      2670.109,
+      2666.894,
+      0,
+      46
+    ],
+    [
+      "awsy-tp6-aot-only",
+      "libxul_rodata",
+      49.227,
+      6.906,
+      980.535,
+      725.25,
+      5.519,
+      92
+    ],
+    [
+      "awsy-tp6-aot-only",
+      "libxul_rw",
+      11.626,
+      10.493,
+      41.685,
+      0,
+      10.493,
+      46
+    ],
+    [
+      "awsy-tp6-aot-only",
+      "anon_exec",
+      8.067,
+      8.067,
+      8.067,
+      0,
+      8.067,
+      86
+    ],
+    [
+      "awsy-tp6-aot-only",
+      "anon_rw",
+      2211.125,
+      2208.766,
+      2280.43,
+      0,
+      2208.766,
+      9328
+    ],
+    [
+      "awsy-tp6-aot-only",
+      "other_file",
+      88.134,
+      46.597,
+      1289.035,
+      1117.914,
+      29.976,
+      21617
+    ],
+    [
+      "awsy-tp6-aot-only",
+      "other_anon",
+      0,
+      0,
+      0,
+      0,
+      0,
+      6479
+    ]
+  ]
+}

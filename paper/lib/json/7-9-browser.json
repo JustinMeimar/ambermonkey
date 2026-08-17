@@ -1,0 +1,58 @@
+{
+  "columns": [
+    {
+      "key": "configuration",
+      "label": "Configuration",
+      "align": "left",
+      "format": "str"
+    },
+    {
+      "key": "firefox_bin_bytes",
+      "label": "firefox launcher",
+      "align": "right",
+      "format": "int"
+    },
+    {
+      "key": "libxul_file_bytes",
+      "label": "libxul.so on disk",
+      "align": "right",
+      "format": "int"
+    },
+    {
+      "key": "libxul_pt_load",
+      "label": "libxul PT_LOAD",
+      "align": "right",
+      "format": "int"
+    },
+    {
+      "key": "dist_bin_bytes",
+      "label": "dist/bin total",
+      "align": "right",
+      "format": "int"
+    },
+    {
+      "key": "dist_bin_files",
+      "label": "dist/bin file count",
+      "align": "right",
+      "format": "int"
+    }
+  ],
+  "rows": [
+    [
+      "Default JIT",
+      6321416,
+      2446404696,
+      186280648,
+      3316059496,
+      7846
+    ],
+    [
+      "Default JIT + AOT",
+      6321904,
+      2449000568,
+      187320184,
+      3331407839,
+      7847
+    ]
+  ]
+}
