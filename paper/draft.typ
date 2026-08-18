@@ -1005,6 +1005,17 @@ Per-content-process timers cover image compatibility, Baseline Interpreter and
 inline-cache (IC) corpus reconstruction, Runtime Indirection Table (RIT)
 initialization, lazy Baseline and IC attachment, and residual compilation.
 
+#figure(
+  table-from-json("aot-attachment-cost-attachment.json"),
+  caption: [Per-artifact AOT install cost against runtime codegen cost during
+    Firefox `cpstartup`. Rates and byte totals are means over content
+    processes; `install (us / call)` is aggregated from the AOT cell,
+    `compile (us / call)` from the runtime cell, and `compile / install`
+    is their ratio. `image (KB / proc)` is the AOT-image contribution
+    per content process.],
+  placement: top,
+) <tab-aot-attachment-cost>
+
 #TODO[Report the paired `cpstartup` difference and ratio with 95% bootstrap
 confidence intervals, per-phase time and call counts, and timer overhead.]
 

@@ -1,0 +1,75 @@
+{
+  "columns": [
+    {
+      "key": "artifact",
+      "label": "artifact",
+      "format": "str",
+      "align": "left"
+    },
+    {
+      "key": "installs_per_proc",
+      "label": "AOT installs / proc",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "compiles_per_proc",
+      "label": "runtime compiles / proc",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "install_us",
+      "label": "install (us / call)",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "compile_us",
+      "label": "compile (us / call)",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "speedup",
+      "label": "compile / install",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "image_kb_per_proc",
+      "label": "image (KB / proc)",
+      "format": "float",
+      "align": "right"
+    }
+  ],
+  "rows": [
+    [
+      "baseline interpreter",
+      1.08,
+      1.04,
+      6.37,
+      73.86,
+      11.6,
+      21.4
+    ],
+    [
+      "baseline scripts",
+      1.72,
+      5.65,
+      4.49,
+      22.52,
+      5.01,
+      2.76
+    ],
+    [
+      "IC stubs",
+      1679.28,
+      58.65,
+      0.07,
+      2.62,
+      37.9,
+      100.59
+    ]
+  ]
+}
