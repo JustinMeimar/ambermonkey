@@ -268,16 +268,19 @@ content processes. This paper makes the following contributions:
 
 #linebreak()
 
-This section defines AmberMonkey's security boundary. Restricted execution
-removes guest-triggered native-code generation, but it does not eliminate
-defects in the engine components that execute JavaScript. Introducing a new
-interpreter or ahead-of-time (AOT) backend would add another implementation of
-JavaScript semantics and the surrounding runtime interfaces. AmberMonkey
-instead invokes SpiderMonkey's production Baseline generators during a trusted
-build and excludes optimizing-tier artifacts. This design fixes the executable
-corpus before deployment and avoids an additional semantic implementation. It
-does not guarantee that the reused generators or captured artifacts are free
-of defects.
+In this section we outline some security considerations for restricted
+execution models. We establish that JIT compilers remain involved in
+critical vulnerability exploits (CVE), despipte auomated language models
+being deployed en-masse to identify bugs. We attribute the intricies of
+adhering to the JavaScript specification, compounded by optimization, as a
+primary reason bugs persist. Notably, semantic bugs apply to less to JIT
+compilers than interpreters. We provide an example of a mis-specified
+interpreter causing security vulnerabilites, demonstrating that all code,
+even that which is intended to improve security, _inevitably becomes part of
+the attack surface itself_. This principle compells us to design AmberMonkey
+around an exsting code generator, rather than introduce a new, semantic
+bearing implementation.
+
 
 #subsection[Interpretation and Compilation]
 
