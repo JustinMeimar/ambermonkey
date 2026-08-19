@@ -8,44 +8,44 @@
     },
     {
       "key": "installs_per_proc",
-      "label": "AOT installs / proc",
+      "label": "installs/proc",
       "format": "float",
       "align": "right"
     },
     {
       "key": "compiles_per_proc",
-      "label": "runtime compiles / proc",
+      "label": "compiles/proc",
       "format": "float",
       "align": "right"
     },
     {
       "key": "install_us",
-      "label": "install (us / call)",
+      "label": "\u00b5s/install",
       "format": "float",
       "align": "right"
     },
     {
       "key": "compile_us",
-      "label": "compile (us / call)",
+      "label": "\u00b5s/compile",
       "format": "float",
       "align": "right"
     },
     {
       "key": "speedup",
-      "label": "compile / install",
+      "label": "ratio",
       "format": "float",
       "align": "right"
     },
     {
       "key": "image_kb_per_proc",
-      "label": "image (KB / proc)",
+      "label": "KB/proc",
       "format": "float",
       "align": "right"
     }
   ],
   "rows": [
     [
-      "baseline interpreter",
+      "interpreter",
       1.08,
       1.04,
       6.37,
@@ -54,7 +54,7 @@
       21.4
     ],
     [
-      "baseline scripts",
+      "self-hosted",
       1.72,
       5.65,
       4.49,

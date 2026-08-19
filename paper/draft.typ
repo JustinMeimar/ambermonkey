@@ -106,13 +106,11 @@
 #pad(x: 0.2em)[
 #text(weight: "medium", size: 10pt)[
 
-  // Runtime type-specialization does not necessarily require runtime-code generation.
-
 $space$ JavaScript engines provide restricted-execution modes to disable
 guest-controlled just-in-time (JIT) compilation. Restricted execution aims
 to reduce an engine's attack surface. Disabling JIT compilation, however, can
 substantially reduce performance. We find that the Baseline JIT can run ahead
-of time (AOT) to generate inline-cache (IC) bodies and other native code,
+of time (AOT) to generate inline-cache (IC) bodies and Baseline functions,
 reclaiming performance lost under restricted settings. Our analysis shows that
 dynamic IC requests concentrate in a small recurring set of stub bodies, making
 their inclusion in a fixed AOT image feasible. Our #ic-stub-bytes corpus serves
@@ -143,71 +141,86 @@ Speedometer 3.1.
 $space$ Restricted-execution modes prevent untrusted guest JavaScript from
 triggering just-in-time (JIT) compilation. Platforms impose these modes to
 satisfy executable-memory constraints or to reduce the compiler attack
-surface exposed to guest-controlled inputs. A 2026 review of V8 bugs
-estimated that JIT compilers accounted for roughly 50% of the tracked
-vulnerabilities @gross2026state. Disabling JIT compilation, however, can
-substantially reduce application throughput. V8 reported a 40% Speedometer
-2.0 slowdown in its JITless configuration @gruber2019jitless. In our
-experiments, an interpreter-only SpiderMonkey configuration reached 38% of
-the throughput of the default tiered-JIT configuration on Speedometer 3.1.
-This gap motivates an ahead-of-time (AOT) code-generation model that
-improves performance over bytecode interpretation without allowing
-guest-triggered native-code generation.
+surface exposed to guest-controlled inputs. Contemporary JavaScript engine
+security treats JIT compilation as a security risk. A
+2026 review of V8 bugs estimated that JIT compilers accounted for roughly
+50% of the tracked vulnerabilities @gross2026state. Disabling JIT
+compilation, however, can substantially reduce application throughput. V8
+initially reported a 40% Speedometer 2.0 slowdown in its JITless
+configuration @gruber2019jitless. In our experiments, an interpreter-only
+SpiderMonkey configuration reached 38% of the throughput of the default
+tiered-JIT configuration on Speedometer 3.1. This gap motivates an
+ahead-of-time (AOT) code-generation model that improves performance over
+bytecode interpretation without allowing guest-triggered native-code
+generation.
 
-V8's embedded builtins demonstrate that a production JIT code generator can
-run during the engine build and that its output can be embedded in the
-executable @gruber2018builtins. V8's fixed builtin corpus does not pose an
-artifact-selection problem. Extending this model to guest code instead
-requires identifying artifacts that recur often enough across workloads to
-justify their binary footprint. We examine this question at two compilation
-granularities: Baseline-compiled functions and inline-cache (IC) bodies.
+V8's embedded builtins demonstrate that a runtime code generator can be used
+during an engine build to bootstrap native code into the executable
+@gruber2018builtins. V8's fixed builtin corpus does not include JIT
+artifacts which recur across workloads on a statistical basis. Extending
+this model to guest code instead requires identifying artifacts that recur
+often enough across workloads to justify their binary footprint. We examine
+this question at two compilation granularities: Baseline-compiled functions
+and inline-cache (IC) bodies.
 
-Baseline compilation can deliver speedups of 2–3× over interpretation
-@titzer2024baseline, yet browser engines invoke it on demand rather than
-compiling every function eagerly. Across 15,000 popular web pages, at least 70%
-of the functions in half of the JavaScript files studied were unused; these
-functions accounted for 55% of file size @kupoluyi2022muzeel. V8 and
-SpiderMonkey go further by deferring full parsing and bytecode generation for
-many inner functions until their first execution @v8preparser2019
-@mozilla2026lazyparsing. These policies reflect two properties of guest code:
-it becomes known only after the engine is built, and much of it never executes.
-Whole application functions are therefore an unattractive default unit for a
-fixed AOT corpus.
+Baseline compilation is a compelling candidate for AOT compilation because it
+remains type generic, whereas optimizing JIT code specializes to observed
+runtime types. This reduces one axis of reusability in that type-behaviour
+must also recur along with function identity. Moreover, Baseline compilation
+can deliver speedups of 2–3× over interpretation @titzer2024baseline. Our
+analysis finds that the cross-workload reuse of Baseline functions is
+prohibitively low to justify including guest functions in an AOT corpus purely
+based on their recurrence.
 
-We compare the cross-workload reuse of Baseline functions and IC bodies. Across
-#inter-site-count websites drawn from
-Mozilla's Firefox page-load benchmark suite @mozilla2026tp6, the set of IC-body
-identities collected while loading one website covers a median
-#inter-ic-coverage-median of the dynamic IC-body entries observed on another.
-By contrast, the Baseline-function identities collected from one website cover
+The diffuse nature of JavaScript workloads affects compilation policy even
+in environments where runtime code generation is enabled. Across 15,000
+popular web pages, at least 70% of the functions in half of the JavaScript
+files studied were unused @kupoluyi2022muzeel. Browser engines therefore
+avoid expending compilation resources on cold code, preferring to invoke
+Baseline compilation on demand rather than upfront. V8 and SpiderMonkey go
+further by deferring full parsing and bytecode generation for many inner
+functions until their first execution @v8preparser2019
+@mozilla2026lazyparsing. These policies demonstrate two properties of guest
+JavaScript code: it becomes known only after the engine is built, and much
+of it never executes. Whole application functions are therefore an
+unattractive default unit for a fixed AOT corpus.
+
+In section III we contrast the cross-process reuse of Baseline function
+compilation against Inline Cache stubs and establish the primary
+empirical contribution of this work. Across #inter-site-count websites drawn
+from Mozilla's Firefox page-load benchmark suite @mozilla2026tp6, the set of
+IC-body identities obtained from one site covers a median
+#inter-ic-coverage-median of dynamic IC-body entries observed on another. By
+contrast, the Baseline-function identities collected from one website cover
 a median #inter-baseline-coverage-median of the dynamic Baseline-function
 entries observed on another. Baseline compilation operates at coarse,
-whole-function granularity, whereas each IC body implements one operation case.
+whole-function granularity, whereas each IC body implements one operation
+case.
 
-CacheIR reinforces this granularity advantage by separating IC stub code from
-per-site data
-@demooij2023cacheir. For example, property-load sites with
-different receiver shapes and slot offsets can share one native body; each site
-supplies those values through its stub fields. This design enables
-sharing of IC stub bodies across distinct IC sites within a JavaScript runtime.
-AmberMonkey exploits this separation to extend code sharing from IC sites
-within one runtime to runtimes in different processes.
+CacheIR enables high cross-workload reuse through separating native stub
+code from per-site data @demooij2023cacheir. This design was deliberate
+to enable sharing of IC stub bodies across distinct IC sites within a
+JavaScript runtime. AmberMonkey extends this notion from intra-process
+sharing to cross-process sharing across JavaScript runtimes. We elaborate on
+how the design decisions of CacheIR inform a feasible AOT corpus in section
+III.
 
-Artifact selection alone does not make the selected code reusable. Production
-JIT compilers generally assume that their native output will execute in the
-process that generated it. They embed concrete addresses of engine routines,
-runtime data structures, and other generated code, binding each artifact to its
-originating process. A reusable AOT format must resolve these dependencies
-without modifying its instructions. Immutability then allows the operating
-system to share the corresponding physical pages across processes.
+Identifying Inline Cache stubs as JIT artifacts which recur across workloads
+solves the first of two problems addressed in this work. A technical barrier
+is that JIT compilers generally assume that their native output will
+execute in the process that generated it. By embedding absolute addresses of
+engine routines, runtime data structures, and other generated code,
+runtime-generated native code is coupled to its runtime. A reusable AOT format
+must resolve these dependencies without affecting the semantics.
 
-We introduce AmberMonkey, a code-generation model that invokes an existing
+We introduce _AmberMonkey_, a code-generation model that invokes an existing
 Baseline JIT during a trusted build and embeds its output in the engine
 executable. By reusing production code generators, AmberMonkey avoids adding
 another implementation of JavaScript execution semantics. The AOT image
 contains the Baseline Interpreter, Baseline-compiled functions from the
 engine's self-hosted library, and a fixed corpus of IC bodies observed across
 workloads.
+
 AmberMonkey keeps the generated instructions immutable by resolving engine
 symbols at native link time and accessing runtime-specific values through a
 per-runtime _Runtime Indirection Table_ (RIT). At load time, AmberMonkey
@@ -223,35 +236,33 @@ content processes. This paper makes the following contributions:
 
 #linebreak()
 
-1. We analyze how JIT compilation granularity affects reuse across distinct web
-   workloads. We show that sets of operation-level IC-body identities provide
-   greater dynamic-entry coverage across workloads than sets of whole-function
-   Baseline identities. We identify the separation of executable code from
-   site-specific data as the design property that enables this reuse,
-   and show that CacheIR provides this separation.
+1. We show that operation-level inline-cache (IC) bodies recur across distinct
+   web workloads. The fixed corpus contains #ic-stub-count IC bodies and
+   occupies #ic-stub-bytes. It serves #sp3-ic-hit-rate of IC-body attachment
+   requests on Speedometer 3.1 and #js3-ic-hit-rate on JetStream 3.0. We
+   identify the separation of executable code from site-specific data as the
+   design property that enables this reuse, and show that CacheIR provides this
+   separation.
 
    #linebreak()
 
-2. We design and implement AmberMonkey, which uses an existing Baseline JIT as
-   an AOT producer without adding another JavaScript compiler or interpreter.
-   AmberMonkey classifies embedded addresses by when their targets become
-   available, resolves them through native linking or per-runtime indirection,
-   and reconstructs JIT artifacts at load time from image-backed code and
-   metadata.
+2. We design and implement AmberMonkey: a transparent code generation mode
+   in SpiderMonkey's Baseline JIT for producing AOT artifacts. We
+   automatically decouple embedded pointers by first assigning each a stable
+   identity. Pointers are then obtained via loads through a _Runtime
+   Indirection Table_ (RIT), filled with live values. For a subset of
+   symbols visible at link time, we offload relocations to the native linker
+   at zero runtime cost.
 
    #linebreak()
 
-3. We evaluate AmberMonkey in SpiderMonkey on x86-64. Its fixed corpus
-   serves #sp3-ic-hit-rate of IC-body attachment requests on Speedometer 3.1
-   and #js3-ic-hit-rate on JetStream 3.0. These rates describe IC-body coverage
-   only; application functions remain interpreted. In the AOT-only
+3. We evaluate AmberMonkey in SpiderMonkey on x86-64. In the AOT-only
    configuration, AmberMonkey improves Speedometer 3.1 throughput by
    #sp3-aot-speedup over bytecode-only execution and reaches
    #sp3-aot-default-fraction of default tiered-JIT throughput. We also quantify
    indirection overhead, binary-size cost, and per-content-process engine
    proportional set size (PSS).
 
-#linebreak()
 
 #section[The Complexity of Optimizing JavaScript]
 
@@ -355,8 +366,7 @@ available in restricted execution settings. In this section, we elaborate on
 the implications of Inline Caching designs. We show that despite generating
 type-specialized native code per IC site, CacheIRs design virtue of
 separating code from data results in a relatively small AOT stub corpus with
-high coverage. @fig-cacheir-sharing previews CacheIR's separation of a
-shared native body from per-site fields.
+high coverage. 
 
 #cacheir-sharing-example(placement: top)
 
@@ -525,12 +535,10 @@ independent of the runtime that generated it.
 #figure(
   image("lib/figures/3-3-inter-workload-pannel.pdf", width: 100%),
   caption: [Cross-workload reuse across the first #inter-site-count tp6-Train
-    workloads. Panel (a) reports pairwise Jaccard overlap, with Baseline
-    functions below the diagonal and inline-cache (IC) bodies above. Panels
-    (b) and (c) report the fraction of target dynamic entries covered by
-    identities from the corpus workload. Operation-level IC bodies provide
-    substantially greater overlap and dynamic coverage than complete Baseline
-    functions.],
+    workloads. (a) Pairwise Jaccard overlap: Baseline functions below the
+    diagonal, IC bodies above. (b, c) Fraction of target dynamic entries
+    covered by the corpus workload. Operation-level ICs give substantially
+    greater overlap and coverage than complete functions.],
   placement: top,
   scope: "parent",
 ) <fig-interworkload-coverage>
@@ -949,19 +957,18 @@ precision for these workloads and is omitted.
 #figure(
   table-from-json("7-2-baseline-function-table.json"),
   caption: [Self-hosted Baseline-function coverage on tp6-Test, Speedometer
-    3.1, and JetStream 3.0. Utilization is the fraction of corpus functions
-    installed at least once; AOT hit rate is the fraction of dynamic
-    Baseline-function requests served by the image.],
+    3.1, and JetStream 3.0. Utilization: fraction of corpus functions
+    installed at least once. AOT hit rate: fraction of dynamic requests
+    served by the image.],
   placement: top,
 ) <tab-coverage-blfun>
 
 #figure(
   table-from-json("7-2-ic-table.json"),
   caption: [CacheIR stub coverage on tp6-Test, Speedometer 3.1, and JetStream
-    3.0. Utilization is the fraction of corpus stub bodies attached at least
-    once. Total attaches counts every stub-attach request; AOT hit rate is the
-    fraction served by the image, with the remainder resolved by the per-zone
-    stub cache or fresh compilation.],
+    3.0. Utilization: fraction of corpus stubs attached at least once. Total
+    attaches: every stub-attach request. AOT hit rate: fraction served by the
+    image.],
   placement: top,
 ) <tab-coverage-ic>
 
@@ -989,15 +996,11 @@ the performance recovered by the immutable corpus: AOT-only recovers
 
 #fig(
   "lib/figures/7-3-amber-perf-speed3-workloads.pdf",
-  [Per-workload Speedometer 3.1 speedup over the interpreter-only baseline
-   for each configuration, with the geometric mean of the 20 workload ratios
-   at the right. AmberMonkey is the full restricted-execution image
-   (AOT Baseline Interpreter, IC corpus, and AOT self-hosted Baseline
-   functions); AmberMonkey-IC drops AOT attach of Baseline functions so
-   self-hosted code executes in the Baseline Interpreter, isolating the
-   IC corpus's contribution. Baseline JIT is runtime-generated Baseline
-   with Ion disabled, and Default (Ion) is unrestricted SpiderMonkey.
-   Whiskers are the standard deviation of per-run ratios.],
+  [Speedometer 3.1 per-workload speedup over interpreter-only; the geomean
+   of the 20 ratios is at the right. AmberMonkey-IC omits AOT Baseline
+   functions to isolate the IC corpus's contribution. Baseline JIT runs
+   Ion-disabled runtime Baseline; Default (Ion) is unrestricted SpiderMonkey.
+   Whiskers show per-run stdev.],
   placement: top,
   scope: "parent",
 ) <fig-amber-perf-speed3>
@@ -1041,12 +1044,10 @@ initialization, lazy Baseline and IC attachment, and residual compilation.
 
 #figure(
   table-from-json("aot-attachment-cost-attachment.json"),
-  caption: [Per-artifact AOT install cost against runtime codegen cost during
-    Firefox `cpstartup`. Rates and byte totals are means over content
-    processes; `install (us / call)` is aggregated from the AOT cell,
-    `compile (us / call)` from the runtime cell, and `compile / install`
-    is their ratio. `image (KB / proc)` is the AOT-image contribution
-    per content process.],
+  caption: [Per-artifact AOT install cost vs. runtime codegen cost during
+    Firefox `cpstartup`, averaged across content processes. `ratio` is
+    `µs/compile` over `µs/install`; `KB/proc` is the AOT-image
+    contribution per process.],
   placement: top,
 ) <tab-aot-attachment-cost>
 
@@ -1110,14 +1111,13 @@ parallelism absorb, not a loss of throughput on the original work.
 
 #fig(
   "lib/figures/7-7-indirection-overhead.pdf",
-  [#if indirection-reps == 1 [Preliminary ]User-mode cycles per
-   iteration for runtime-generated and AOT Baseline code with Ion disabled
-   (#indirection-repetitions fresh #indirection-process-word per
-   configuration). Labels give arithmetic means; whiskers show one standard
-   deviation when multiple observations are available. The dotted rule
-   separates #indirection-targeted-count optimization-sensitive sites from
-   #indirection-control-count controls. GM is the geometric mean of the
-   #indirection-benchmark-count AOT/runtime ratios.],
+  [#if indirection-reps == 1 [Preliminary ]User-mode cycles per iteration
+   for runtime and AOT Baseline (Ion disabled, #indirection-repetitions
+   fresh #indirection-process-word). Labels are means; whiskers show one
+   stdev. The dotted rule separates #indirection-targeted-count
+   optimization-sensitive sites from #indirection-control-count controls.
+   GM is the geomean of the #indirection-benchmark-count AOT/runtime
+   ratios.],
   placement: top,
 ) <fig-indirection-overhead>
 
@@ -1140,11 +1140,10 @@ whose Ion tier changes the code profile.
 
 #figure(
   table-from-json("cross-process-memory-sharing-aggregate.json"),
-  caption: [Speedometer 3.1 engine memory at Peak, per configuration.
-    Values are means across three iterations. `.text.aot RSS/PSS` is the
-    cross-process sharing ratio; higher is more shared. `anon-exec PSS`
-    is total private-JIT memory across content processes. `engine PSS /
-    proc` is (`.text.aot PSS` + `anon-exec PSS`) / n_procs.],
+  caption: [Speedometer 3.1 engine memory at Peak, per configuration; means
+    across three iterations. `.text.aot RSS/PSS` is the cross-process
+    sharing ratio (higher = more shared). `engine PSS / proc` =
+    (`.text.aot PSS` + `anon-exec PSS`) / n_procs.],
   placement: top,
 ) <tab-sp3-memory>
 

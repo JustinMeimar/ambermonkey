@@ -49,12 +49,15 @@
 // --- 7-3 restricted-execution Speedometer perf ---
 // Ratios come from the tier-ladder table's aggregate score; the ratio equals
 // the geometric mean of the 20 per-workload speedups.
-#let _sp3-aot-ratio      = cell-value("7-3-perf.json", "aot-corpus",     "ratio_over_interp")
-#let _sp3-bl-ratio       = cell-value("7-3-perf.json", "default-no-ion", "ratio_over_interp")
-#let _sp3-default-ratio  = cell-value("7-3-perf.json", "default",        "ratio_over_interp")
-#let sp3-aot-speedup           = pct(json-field("7-3-perf.json", "aot_over_interp_speedup"))
-#let sp3-aot-default-fraction  = pct(json-field("7-3-perf.json", "aot_over_default_ratio"))
+#let _sp3-aot-ratio      = cell-value("restricted-execution-perf.json", "aot-corpus",     "ratio_over_interp")
+#let _sp3-aot-ic-ratio   = cell-value("restricted-execution-perf.json", "aot-corpus-ic",  "ratio_over_interp")
+#let _sp3-bl-ratio       = cell-value("restricted-execution-perf.json", "default-no-ion", "ratio_over_interp")
+#let _sp3-default-ratio  = cell-value("restricted-execution-perf.json", "default",        "ratio_over_interp")
+#let sp3-aot-speedup           = pct(json-field("restricted-execution-perf.json", "aot_over_interp_speedup"))
+#let sp3-aot-ic-speedup        = pct(json-field("restricted-execution-perf.json", "aot_ic_over_interp_speedup"))
+#let sp3-aot-default-fraction  = pct(json-field("restricted-execution-perf.json", "aot_over_default_ratio"))
 #let sp3-aot-ratio             = float-str(_sp3-aot-ratio)     + "×"
+#let sp3-aot-ic-ratio          = float-str(_sp3-aot-ic-ratio)  + "×"
 #let sp3-bl-ratio              = float-str(_sp3-bl-ratio)      + "×"
 #let sp3-default-ratio         = float-str(_sp3-default-ratio) + "×"
 #let sp3-aot-over-bl-fraction  = pct(_sp3-aot-ratio / _sp3-bl-ratio)

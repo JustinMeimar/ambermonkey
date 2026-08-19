@@ -40,6 +40,13 @@
       0.3814
     ],
     [
+      "aot-corpus-ic",
+      9.127,
+      0.141,
+      1.8312,
+      0.6984
+    ],
+    [
       "aot-corpus",
       7.508,
       0.047,
@@ -64,7 +71,11 @@
   "aot_over_interp_ratio": 1.5064205457463884,
   "aot_over_interp_speedup": 0.5064205457463884,
   "aot_over_default_ratio": 0.5745185563065935,
-  "source_fossil": "7-3-ambermonkey-perf",
+  "aot_ic_over_interp_ratio": 1.8311931514178705,
+  "aot_ic_over_interp_speedup": 0.8311931514178705,
+  "baseline_fn_share_of_aot_speedup": -0.6413100898045433,
+  "ic_share_of_aot_speedup": 1.6413100898045432,
+  "source_fossil": "restricted-execution",
   "workload": "speedometer3",
   "runs_per_variant": 3,
   "page_cycles_per_run": 3
