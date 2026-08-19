@@ -60,6 +60,14 @@ swirski2021sparkplug:
   date: 2021-05-27
   url: "https://v8.dev/blog/sparkplug"
 
+alle2018codecaching:
+  type: web
+  title: "Improved Code Caching"
+  author:
+    - Alle, Mythri
+  date: 2018-04-24
+  url: "https://v8.dev/blog/improved-code-caching"
+
 titzer2024baseline:
   type: article
   title: "Whose Baseline Compiler Is It Anyway?"
@@ -594,6 +602,7 @@ deutsch1984smalltalk:
     - Deutsch, L. Peter
     - Schiffman, Allan M.
   date: 1984
+  page-range: 297-302
   parent:
     type: proceedings
     title: "Proceedings of the 11th ACM SIGACT-SIGPLAN Symposium on Principles of Programming Languages (POPL)"
@@ -613,6 +622,20 @@ holzle1991pic:
     title: "ECOOP '91 -- Object-Oriented Programming (LNCS 512)"
   publisher: Springer-Verlag
   doi: "10.1007/BFb0057013"
+
+brunthaler2010quickening:
+  type: article
+  title: "Inline Caching Meets Quickening"
+  author:
+    - Brunthaler, Stefan
+  date: 2010
+  page-range: 429-451
+  parent:
+    type: proceedings
+    title: "ECOOP 2010 -- Object-Oriented Programming"
+    volume: 6183
+  publisher: Springer-Verlag
+  doi: "10.1007/978-3-642-14107-2_21"
 
 kocher2019spectre:
   type: article

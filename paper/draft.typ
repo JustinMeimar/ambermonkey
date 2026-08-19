@@ -361,149 +361,200 @@ runtime-independence design.
 
 #linebreak()
 
-#section[Structured IC Bodies and Reusable AOT Artifacts]
 
-#linebreak()
+#section[Structured Inline Caching Forms a Bounded AOT Corpus]
 
-SpiderMonkey's Baseline tier combines type-generic execution with
-operation-level specialization through CacheIR. CacheIR separates reusable
-executable bodies from the site-specific data that specializes them, making IC
-bodies suitable for ahead-of-time (AOT) reuse. This section describes that
-execution model and measures how often IC-body identities recur across
-unrelated workloads.
+
+SpiderMonkeys CacheIR Inline Caching system can improve performance over
+pure interpratation from 63% to 95% on web-benchmarks @demooij2023cacheir.
+As such, it is an attractive AOT target for performance reclaimation.
+However, using dynamic translation per call site threatens to inhbit cross
+process reuse. With each IC site generating native fast paths, the prospect
+of a bounded AOT corpus is subject to coverage. Data oreinted IC
+architectures, such as those used in interpreters, are by contrast trivially
+available in restricted execution settings. In this section, we elaborate on
+the implications of Inline Caching designs. We show that despite generating
+type-specialized native code per IC site, CacheIRs design virtue of
+separating code from data results in a relatively small AOT stub corpus with
+high coverage.
+
+@fig-cacheir-sharing previews CacheIR's separation of a shared native body
+from per-site fields.
 
 #cacheir-sharing-example(placement: top)
 
-#subsection[SpiderMonkey's Baseline Tier]
+#subsection[Inline Caching]
 
-SpiderMonkey executes JavaScript through four tiers. An interpreter first
-executes a script's bytecode without generating guest-specific machine code.
-As the script becomes hot, SpiderMonkey advances through the generated
-Baseline Interpreter, per-script Baseline compilation, and optimizing Ion
-compilation @mozilla2026spidermonkeytiers. AmberMonkey targets the two Baseline
-tiers and the IC bodies that provide their run-time specialization.
+Inline caching specializes dynamic method resolution with guarded fast paths.
+Deutsch and Schiffman introduced the technique for Smalltalk method
+invocations @deutsch1984smalltalk. When execution first reaches a method-call
+site, generic lookup resolves the receiver's method and records both the
+receiver type and target method. On later executions, the fast path guards the
+current receiver type against the recorded type and invokes the cached target
+on a match. This design exploits temporal locality: a method-call site is
+likely to encounter the same receiver type that it observed recently.
 
+Modern inline caching systems in JavaScript adapt this design for polymorphic
+behavior. SpiderMonkey associates an inline cache (IC) with each supported
+bytecode in a script. Both the generated Baseline Interpreter and
+Baseline-compiled functions dispatch to these ICs, allowing the two tiers to
+use the same observed fast paths. Each IC is a linked list of type-specialized
+stubs. Execution traverses this _IC chain_ until a stub's guards match the
+observed operands, object shapes, or callee @demooij2023cacheir.
 
+SpiderMonkey lazily compiles specialized IC stubs through the fallback stub.
+Each IC chain initially contains only this fallback. When no specialized stub
+matches, the fallback computes the generic result and attempts to compile a
+stub for the observed case. It prepends the new stub to the linked list so that
+the most recently observed case is tested first. An attached _IC stub_ contains
+chain linkage, an entry counter, and metadata holding CacheIR and site-specific
+data. It also points to a native _stub body_ that implements its guards and fast
+operation @demooij2023cacheir. This separation between an attached stub and its
+executable body is central to AmberMonkey's AOT corpus.
 
-#linebreak()
-$space$ _Baseline Interpreter:_ Each SpiderMonkey runtime generates one native
-Baseline Interpreter during initialization. It contains a type-generic native
-handler for each JavaScript bytecode opcode and dispatches between handlers
-while executing a script. At each cacheable opcode, the handler enters that
-site's IC chain. Every script in the runtime can therefore share one generated
-interpreter while retaining its own IC chains.
+@fig-interworkload-coverage previews the cross-workload comparison reported
+at the end of this section.
 
-#linebreak()
-$space$ _Inline-cache bodies:_ IC chains provide run-time specialization for both
-the Baseline Interpreter and Baseline-compiled functions. A fallback stub
-handles a chain miss and may use a CacheIR generator to describe guards and a
-fast path for the observed case. The Baseline CacheIR compiler translates this
-description into an executable stub body. SpiderMonkey stores site-specific
-fields, including shapes and slot indices, separately from that body, allowing
-multiple IC sites to reuse one compiled implementation
-@demooij2023cacheir @mozilla2026cacheir. AmberMonkey includes the executable
-body in its AOT image while each runtime retains its own fields and chain
-metadata.
-
-#linebreak()
-$space$ _Baseline compilation:_ After an individual script becomes sufficiently hot, the
-Baseline compiler translates its complete bytecode sequence into per-script
-native code. It shares per-opcode generation infrastructure with the Baseline
-Interpreter, eliminates bytecode-dispatch overhead, and performs limited local
-stack tracking. The compiler consumes bytecode rather than run-time type
-profiles and relies on IC chains for dynamic specialization
-@mozilla2026spidermonkeytiers. We call the resulting program-specific artifact
-a _Baseline function_. Its instruction identity depends on immutable script
-data and the compilation configuration, but not on a run-time type profile.
-
-#subsection[CacheIR as an AOT Reuse Boundary]
-
-Structured inline caches expose operation-level native bodies as potential
-units of AOT reuse. SpiderMonkey's CacheIR gives these bodies a structural
-identity while retaining site-specific values in private data.
-
-CacheIR makes Baseline IC bodies amenable to AOT sharing by separating the
-structural inputs to code generation from per-site specialization data. For
-a fixed engine build and code-generation configuration, the cache kind and
-CacheIR program determine the native body. The concrete field values and the
-IC site's script location do not. AmberMonkey serializes the field types with
-the body to reconstruct its data layout in a later runtime. Exact structural
-matching therefore provides a reuse key without manually maintained stub-code
-sharing keys. It does not merge semantically equivalent but structurally
-distinct CacheIR programs.
-
-CacheIR represents this separation through three operand classes. Operand
-identifiers denote run-time inputs and intermediate values. Stub fields hold
-values fixed for one stub instance, such as an object shape or slot index.
-Immediates form part of the CacheIR program and therefore contribute to its
-structural identity @demooij2023cacheir @mozilla2026cacheir.
-
-@fig-cacheir-sharing shows two property-load stubs with the same CacheIR
-program. The shape and slot offset differ, but both stubs place those values
-at the same field offsets. The Baseline CacheIR compiler emits instructions
-that load the values from the current stub. Both sites can therefore call
-the same native body. In contrast, SpiderMonkey's optimizing IC compiler can
-embed field values in instructions to avoid these loads, which prevents body
-sharing @demooij2023cacheir.
-
-#subsection[AOT Specialization]
-
-Run-time observations still select a CacheIR program and its private field
-values. AmberMonkey uses the program's structural identity to query the fixed
-AOT corpus. A hit combines the image-backed body with run-time-private fields;
-a miss continues on the generic fallback path without generating instructions.
-Untrusted execution can therefore select and parameterize precompiled bodies,
-but cannot extend the executable corpus.
-
-CacheIR makes body reuse possible, but it does not guarantee that a bounded
-corpus will cover future execution. This utility depends on whether dynamic
-execution concentrates in a recurring set of structural identities across
-unrelated workloads.
-
-#subsection[Cross-Workload Reuse]
-
-We compare exact identities of operation-level IC bodies and complete Baseline
-functions to determine which granularity supports a bounded cross-workload
-corpus.
-
-We partition the #tp6-site-count desktop workloads in Mozilla's tp6 page-load
-suite alphabetically @mozilla2026tp6. The first #tp6-train-site-count form
-_tp6-Train_; the remaining #tp6-test-site-count form the held-out _tp6-Test_.
-The pairwise study in @fig-interworkload-coverage uses the first
-#inter-site-count tp6-Train workloads. This deterministic subset was fixed
-without reference to overlap. We collect repeated cold page loads and retain
-content-process events.
-
+#pagebreak(weak: true)
 #figure(
   image("lib/figures/3-3-inter-workload-pannel.pdf", width: 100%),
   caption: [Cross-workload reuse across the first #inter-site-count tp6-Train
-    workloads. Panel (a) reports Jaccard overlap between identity sets, with
-    Baseline functions below the diagonal and inline-cache (IC) bodies above.
-    Panels (b) and (c) report the fraction of target dynamic entries covered by
-    identities from the row workload.],
+    workloads. Panel (a) reports pairwise Jaccard overlap, with Baseline
+    functions below the diagonal and inline-cache (IC) bodies above. Panels
+    (b) and (c) report the fraction of target dynamic entries covered by
+    identities from the corpus workload. Operation-level IC bodies provide
+    substantially greater overlap and dynamic coverage than complete Baseline
+    functions.],
   placement: top,
   scope: "parent",
 ) <fig-interworkload-coverage>
 
-We instrument SpiderMonkey to record Baseline-function identities, attached
-IC-body identities, and entries into both artifact types. Static overlap is
-the Jaccard index of two identity sets. Dynamic coverage is the fraction of a
-target's function or stub entries whose identity occurs in the corpus
-workload.
+
+#subsection[Executable Representation]
+
+IC systems differ in whether run-time observations select pre-generated code
+or trigger dynamic translation. In a _fixed-handler_ design, an observation
+updates data or an opcode that selects machine code generated with the engine.
+Brunthaler describes interpreter ICs that update a handler pointer or replace a
+generic bytecode opcode with a pre-generated specialized opcode
+@brunthaler2010quickening. The latter technique, called _quickening_, changes
+the interpreted instruction without generating native instructions at run
+time.
+
+V8's Ignition interpreter also draws from a fixed set of bytecode handlers.
+Each IC site records observations and handler selections in a feedback vector,
+so execution can adapt the site's data without extending Ignition's executable
+handler set @alle2018codecaching. The complete set of candidate instructions is
+therefore available before an application runs.
+
+A _dynamically translated_ IC instead generates a native stub body for an
+observed case. CacheIR uses this representation in SpiderMonkey. A CacheIR
+generator describes the guards and fast operation, and the Baseline CacheIR
+compiler lowers that description to native code @demooij2023cacheir. The
+resulting body places the case's guards and operation in one type-specialized
+instruction sequence.
+
+At first glance, dynamically translated ICs appear incongruent with an AOT
+formulation. Every IC site can invoke run-time code generation for its observed
+cases, and a large program may contain millions of sites. Treating each site as
+a distinct compilation unit would require an impractically large fixed image.
+An AOT corpus is feasible only if those sites request a much smaller recurring
+set of native bodies. CacheIR creates such identities by excluding
+site-specific values from the body.
+
+
+#subsection[CacheIR Enables IC Stub Sharing]
+
+CacheIR explicitly separates code from data by representing an observed case as
+a structural program paired with per-stub fields. The program describes guards
+and fast-path operations, while the fields hold values specific to one site.
+The Baseline CacheIR compiler emits instructions from the program, allowing
+sites with different run-time data to share one native stub body. SpiderMonkey
+already uses this representation to share Baseline stub bodies within a
+JavaScript runtime @demooij2023cacheir.
+
+@fig-cacheir-sharing illustrates this separation for property loads at two IC
+sites. The receiver object enters the body as a run-time operand. Each attached
+stub stores its own expected shape and slot offset at the same field indices.
+The native body refers to these indices instead of embedding either site's
+values, allowing sites with different receivers, shapes, and offsets to share
+the same instructions. CacheIR immediates remain part of the program and thus
+contribute to its executable identity.
+
+SpiderMonkey's existing stub-code cache relies on this structural identity.
+Before compiling a Baseline stub body, SpiderMonkey queries the cache using the
+cache kind and exact CacheIR program. A hit attaches a new stub that holds
+private fields and points to the existing body. A miss compiles the body once
+and adds it to the cache @demooij2023cacheir. CacheIR thereby removes
+site-specific data from the native body's identity within a runtime.
+
+
+#subsection[Fixed-Corpus IC Attachment]
+
+AmberMonkey replaces native compilation with a lookup in its fixed AOT corpus.
+On an IC miss, SpiderMonkey still observes the operands, selects a CacheIR
+program, and populates its stub fields. A corpus hit attaches a runtime-private
+stub that points to the matching immutable body. If no AOT body matches, the
+fallback computes the generic result and returns execution to the interpreter
+without generating instructions.
+
+The interpreter preserves semantic completeness, so corpus coverage affects
+performance rather than correctness. Guest execution may select a precompiled
+body and supply its private fields, but it cannot create or modify native
+instructions. This execution model requires a recurring set of structural
+identities; the following subsection measures whether such identities recur
+across unrelated workloads.
+
+
+#subsection[Cross-Workload Reuse]
+
+Structural identity makes cross-site sharing possible, but a bounded corpus is
+useful only if those identities recur across workloads. We test this condition
+by comparing operation-level IC bodies with complete Baseline functions. A
+Baseline-function identity incorporates a script's bytecode and compilation
+configuration, while an IC-body identity contains only its cache kind and exact
+CacheIR program.
+
+We measure both static overlap and directional dynamic coverage. Static overlap
+is the Jaccard index of the identity sets observed in two workloads. For an
+ordered pair with corpus workload $A$ and target workload $B$, dynamic coverage
+is the fraction of entries in $B$ whose identity appeared in $A$. We record
+identities and native-code entries during repeated cold page loads of the first
+#inter-site-count alphabetically ordered tp6-Train workloads
+@mozilla2026tp6. This deterministic subset was fixed without reference to
+overlap, and the analysis retains content-process events.
+@fig-interworkload-coverage summarizes both measures.
 
 Baseline functions have a median Jaccard overlap of
-#inter-baseline-jaccard-median, and a workload covers only
-#inter-baseline-coverage-median of another's function entries at the median.
-For IC bodies, these values rise to #inter-ic-jaccard-median and
-#inter-ic-coverage-median. The shared IC set therefore contains the frequently
-entered bodies: #inter-ic-pairs-at-threshold of #inter-ic-offdiag-count pairs
-cover at least #inter-ic-threshold-pct of target stub entries, and the minimum
-is #inter-ic-min-value.
+#inter-baseline-jaccard-median, and one workload covers a median
+#inter-baseline-coverage-median of another workload's dynamic function entries.
+IC bodies have a median Jaccard overlap of #inter-ic-jaccard-median and cover a
+median #inter-ic-coverage-median of another workload's dynamic body entries.
+Of the #inter-ic-offdiag-count ordered IC pairs,
+#inter-ic-pairs-at-threshold cover at least #inter-ic-threshold-pct of target
+entries. Even the minimum pairwise IC coverage is #inter-ic-min-value.
 
-Exact reuse decreases as artifacts incorporate more application context.
-These results support IC bodies, rather than application Baseline functions,
-as the workload-derived corpus unit. Section VI-B describes construction of
-the evaluated image; we do not measure trace or optimizing code.
+Exact reuse decreases as a compilation unit incorporates more application
+context. A Baseline function combines an entire bytecode sequence, whereas an
+IC body implements one operation case. CacheIR further removes shapes, offsets,
+and other site-specific values from that body's identity. The measurements do
+not imply that every IC body is universal, but they show that operation-level
+structured bodies are a more suitable workload-derived corpus unit than
+complete application functions.
+
+Guided by this result, AmberMonkey's evaluated image contains the complete
+union of #ic-stub-count bodies observed across the #tp6-train-site-count
+tp6-Train workloads, occupying #ic-stub-bytes. The fixed corpus later serves
+#sp3-ic-hit-rate of IC-body attachment requests on Speedometer 3.1 and
+#js3-ic-hit-rate on JetStream 3.0, neither of which participates in corpus
+construction. Section VI describes corpus construction, and Section VII
+reports held-out coverage in detail. These attachment-request rates are
+distinct from the dynamic entry coverage measured above.
+
+This analysis identifies recurring IC bodies as useful AOT artifacts. The next
+section addresses the separate problem of making their captured native code
+independent of the runtime that generated it.
+
 
 #section[AmberMonkey Design]
 
