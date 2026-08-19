@@ -59,3 +59,28 @@ _self-hosted JavaScript_. The build combines this source into data distributed
 with the engine, making its function corpus known before deployment
 @thrall2025selfhosted. Application scripts instead arrive after deployment and
 cannot generally be predicted by the engine build.
+
+
+// /From intro
+//
+interpreter-derived compilation's goal of avoiding an additional
+semantic implementation, but reuse SpiderMonkey's production Baseline
+generators during a trusted build. Adding a separate AOT backend would
+introduce another implementation of JavaScript semantics. It would also need
+to reproduce the production engine's garbage-collection, exception-handling,
+stack-walking, and tiering interfaces.
+
+>  Resuing without adding another compiler or interpreter
+
+
+// form intro...
+
+
+-Interpreter specialization provides another route to AOT compilation. The
+first Futamura projection derives compiled code by specializing an in
+terpreter for a fixed input program @futamura1971partial. Weval applies this
+ap proach to jSpiderMonkey, deriving WebAssembly by specializing the
+engine's inter preter for jguest bytecode and a fixed IC corpus stored in a
+snapshot @fallin2025 weval. This preserves the interpreter as the source of
+truth for bytecode executi on -semantics, but requires the guest program to
+be available before AOT compilation.
