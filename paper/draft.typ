@@ -375,19 +375,21 @@ runtime-independence design.
 #linebreak()
 
 $space$ Fixed-handler inline caches (ICs) bound their executable code by
-generating every candidate handler before an application runs. This property
-makes them directly compatible with restricted execution, but it restricts
-native specialization to combinations anticipated by the fixed handler set.
+generating their handler implementations before an application runs. This
+property makes them directly compatible with restricted execution, but it
+restricts native specialization to combinations anticipated by the fixed
+handler set.
 Dynamically translated ICs occupy a different design point. They can combine
 the guards and fast operation for an observed case in one specialized native
 instruction sequence, but their apparently open-ended output threatens to make
 a fixed AOT image impractical.
 
 This section shows that native IC specialization and a bounded AOT image are
-compatible. SpiderMonkey's IC system improves web-benchmark performance from
-63% to 95% of optimizing-tier throughput @demooij2023cacheir. CacheIR separates
-the structural program compiled into a native body from values private to an
-IC site. We find that the resulting body identities recur across unrelated
+compatible. Prior work reports that CacheIR improved Baseline Interpreter
+performance over SpiderMonkey's C++ interpreter by 1.63× on Speedometer 2.1
+and 1.95× on JetStream 2.1 @demooij2023cacheir. CacheIR separates the
+structural program compiled into a native body from values private to an IC
+site. We find that the resulting body identities recur across unrelated
 workloads. AmberMonkey can therefore retain CacheIR's native specialization
 under restricted execution while replacing guest-triggered compilation with a
 lookup in a compact AOT corpus. Section VII measures the performance recovered
@@ -401,10 +403,12 @@ At its core, inline caching specializes a generic routine with one or more
 guarded fast paths. Deutsch and Schiffman introduced the technique to improve
 dynamic method dispatch in Smalltalk @deutsch1984smalltalk. When a dynamic
 method is first invoked, a generic routine resolves the method based on the
-receiver object's type. Assuming call-site _locality_, the implementation
+receiver object's class. Assuming call-site _locality_, the implementation
 caches the resolved method and attempts the same dispatch on subsequent
-invocations. This fast path is guarded by the receiver type and falls back to
+invocations. This fast path is guarded by the receiver class and falls back to
 generic method lookup upon failure.
+Hölzle, Chambers, and Ungar later extended this design with polymorphic inline
+caches, which retain several receiver classes at one site @holzle1991pic.
 
 Modern inline caching systems in JavaScript adapt this design for
 polymorphic operators. SpiderMonkey associates an inline cache (IC) with
@@ -439,10 +443,10 @@ the interpreted instruction without generating native instructions at run
 time.
 
 V8's Ignition interpreter also draws from a fixed set of bytecode handlers.
-Each IC site records observations and handler selections in a feedback vector,
-so execution can adapt the site's data without extending Ignition's executable
-handler set @alle2018codecaching. The complete set of candidate instructions is
-therefore available before an application runs.
+Each property IC site records observations and handler selections in a feedback
+vector, so execution can adapt the site's data without extending Ignition's
+executable handler set @alle2018codecaching. The native handler implementations
+are therefore available before an application runs.
 
 A _dynamically translated_ IC instead generates a native stub body for an
 observed case. CacheIR uses this representation in SpiderMonkey. A CacheIR
@@ -453,11 +457,13 @@ instruction sequence.
 
 At first glance, dynamically translated ICs appear incongruent with an AOT
 formulation. Every IC site can invoke run-time code generation for its observed
-cases, and a large program may contain millions of sites. Treating each site as
-a distinct compilation unit would require an impractically large fixed image.
-An AOT corpus is feasible only if those sites request a much smaller recurring
-set of native bodies. CacheIR creates such identities by excluding
-site-specific values from the body.
+cases, and a large program may contain millions of sites. SpiderMonkey bounds
+each individual IC chain, but the number of distinct bodies across sites
+remains an empirical question @demooij2023cacheir. Treating each site as a
+distinct compilation unit would require an impractically large fixed image. An
+AOT corpus is feasible only if those sites request a much smaller recurring set
+of native bodies. CacheIR creates such identities by excluding site-specific
+values from the body.
 
 
 #subsection[CacheIR Enables IC Stub Sharing]
@@ -521,11 +527,13 @@ We measure both static and directional dynamic intersection. For two workloads,
 static intersection is the fraction of distinct artifact identities observed
 in either workload that occur in both. For an ordered pair with corpus workload
 $A$ and target workload $B$, dynamic intersection is the fraction of entries in
-$B$ whose identity appeared in $A$. We record identities and native-code entries
-during repeated cold page loads of the first #inter-site-count alphabetically
-ordered tp6-Train workloads @mozilla2026tp6. This deterministic subset was
-fixed without reference to the intersection results, and the analysis retains
-content-process events.
+$B$ whose identity appeared in $A$. IC entries count executions of attached
+nonfallback stubs; fallback execution is excluded. We record identities and
+native-code entries during three cold page loads of the first #inter-site-count
+alphabetically ordered tp6-Train workloads @mozilla2026tp6. This deterministic
+subset was fixed without reference to the intersection results, and the
+analysis retains only guest-script events from content processes. We pool the
+three page loads rather than treating them as independent samples.
 @fig-interworkload-coverage summarizes both measures.
 
 Across workload pairs, Baseline functions have a median static intersection of
