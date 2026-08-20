@@ -93,53 +93,47 @@
       )
     }
 
-    // Pick one slot (counting from the top) to be the source of the
-    // linked list. Slot k spans rows [n-slots-k, n-slots-k+1] in the
-    // bottom-up y coordinate CeTZ uses.
-    let source-slot = 2  // 3rd row from the top
+    // Shared geometry for any linked list hanging off a slot.
     let slot-h = (bc-y1 - bc-y0) / n-slots
-    let slot-cy = bc-y1 - slot-h * (source-slot + 0.5)
-
-    // Two linked-list nodes to the right of the column.
     let node-w = 1.5
     let node-h = 0.75
     let gap    = 0.9              // gap between column and first node
     let inter  = 0.7              // gap between the two nodes
 
-    let n1-x0 = bc-x1 + gap
-    let n1-x1 = n1-x0 + node-w
-    let n2-x0 = n1-x1 + inter
-    let n2-x1 = n2-x0 + node-w
+    // Draw a two-node linked list emanating from `slot-idx` (0 = top).
+    let draw-list(slot-idx) = {
+      let slot-cy = bc-y1 - slot-h * (slot-idx + 0.5)
 
-    let n1-y0 = slot-cy - node-h / 2
-    let n1-y1 = slot-cy + node-h / 2
-    let n2-y0 = n1-y0
-    let n2-y1 = n1-y1
+      let n1-x0 = bc-x1 + gap
+      let n1-x1 = n1-x0 + node-w
+      let n2-x0 = n1-x1 + inter
+      let n2-x1 = n2-x0 + node-w
 
-    rect(
-      (n1-x0, n1-y0), (n1-x1, n1-y1),
-      stroke: 0.7pt + dg.ink,
-      fill: white,
-      radius: 0.12,
-    )
-    rect(
-      (n2-x0, n2-y0), (n2-x1, n2-y1),
-      stroke: 0.7pt + dg.ink,
-      fill: white,
-      radius: 0.12,
-    )
+      let n1-y0 = slot-cy - node-h / 2
+      let n1-y1 = slot-cy + node-h / 2
 
-    // Edge from the bytecode slot to node 1, then node 1 to node 2.
-    line(
-      (bc-x1, slot-cy), (n1-x0, slot-cy),
-      mark: (end: ">"),
-      stroke: 0.7pt + dg.ink,
-    )
-    line(
-      (n1-x1, slot-cy), (n2-x0, slot-cy),
-      mark: (end: ">"),
-      stroke: 0.7pt + dg.ink,
-    )
+      rect(
+        (n1-x0, n1-y0), (n1-x1, n1-y1),
+        stroke: 0.7pt + dg.ink, fill: white, radius: 0.12,
+      )
+      rect(
+        (n2-x0, n1-y0), (n2-x1, n1-y1),
+        stroke: 0.7pt + dg.ink, fill: white, radius: 0.12,
+      )
+
+      line(
+        (bc-x1, slot-cy), (n1-x0, slot-cy),
+        mark: (end: ">"), stroke: 0.7pt + dg.ink,
+      )
+      line(
+        (n1-x1, slot-cy), (n2-x0, slot-cy),
+        mark: (end: ">"), stroke: 0.7pt + dg.ink,
+      )
+    }
+
+    // Third row from the top, and second row from the bottom.
+    draw-list(2)
+    draw-list(n-slots - 2)
   })
 }
 
