@@ -163,14 +163,17 @@ often enough across workloads to justify their binary footprint. We examine
 this question at two compilation granularities: Baseline-compiled functions
 and inline-cache (IC) bodies.
 
-Baseline compilation is a compelling candidate for AOT compilation because it
-remains type generic, whereas optimizing JIT code specializes to observed
-runtime types. This reduces one axis of reusability in that type-behaviour
-must also recur along with function identity. Moreover, Baseline compilation
-can deliver speedups of 2–3× over interpretation @titzer2024baseline. Our
-analysis finds that the cross-workload reuse of Baseline functions is
-prohibitively low to justify including guest functions in an AOT corpus purely
-based on their recurrence.
+Baseline compilation forms a compelling candidate for AOT compilation by
+remaining type generic where optimizing JIT code specializes to observed
+runtime types. This reduces one axis of reusability: type-behaviour must not
+recur along with function identity to trigger reuse. Baseline compiled
+functions could acheive speedups of 2–3× over interpretation
+@titzer2024baseline. The first portion of our empirical analysis finds that
+the cross-workload reuse of Baseline functions is prohibitively low to
+justify inclusion into an AOT corpus. Instead, we identify
+#self-hosted-fn-count self-hosted JavaScript functions, including builtins,
+which can be compiled into the AOT image for their universal availaibility
+across all workloads.
 
 The diffuse nature of JavaScript workloads affects compilation policy even
 in environments where runtime code generation is enabled. Across 15,000
