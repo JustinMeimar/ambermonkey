@@ -98,8 +98,8 @@
     let slot-h = (bc-y1 - bc-y0) / n-slots
     let node-w = 1.5
     let node-h = 0.75
-    let gap    = 0.9              // gap between column and first node
-    let inter  = 0.7              // gap between the two nodes
+    let gap    = 1.3              // gap between column and first node
+    let inter  = 1.4              // gap between the two nodes
 
     // Draw a two-node linked list emanating from `slot-idx` (0 = top).
     // `payload` is the per-site stub data that goes inside the first
@@ -164,10 +164,14 @@
     let n1-x1 = n1-x0 + node-w
     let n1-cx = (n1-x0 + n1-x1) / 2
 
-    let box-w = 1.8
-    let box-h = 1.05
-    let box-x0 = n1-cx - box-w / 2
-    let box-x1 = n1-cx + box-w / 2
+    // Shift the middle box right of `n1-cx` so it clears the bytecode
+    // column, and give it a bit more width/height so the CacheIR body
+    // sits inside with margin instead of clipping the right edge.
+    let box-w  = 4.4
+    let box-h  = 1.3
+    let box-cx = n1-cx + 0.4
+    let box-x0 = box-cx - box-w / 2
+    let box-x1 = box-cx + box-w / 2
     let box-y0 = mid-cy - box-h / 2
     let box-y1 = mid-cy + box-h / 2
 
@@ -177,21 +181,41 @@
       fill: dg.wash,
       radius: 0.12,
     )
+    // Left-anchored CacheIR body so ops and operands line up columnwise
+    // and the offsets tie visually to the per-site payloads above/below.
     content(
-      (n1-cx, mid-cy),
-      dtiny[GuardShape \ LoadSlot \ Return],
+      (box-x0 + 0.2, mid-cy),
+      anchor: "west",
+      dtiny[
+        GuardShape\u{00A0}\u{00A0}\u{00A0}\u{00A0}\u{00A0}shapeOffset 0 \
+        LoadFixedSlot\u{00A0}\u{00A0}slotOffset\u{00A0}\u{00A0}8 \
+        ReturnFromIC
+      ],
     )
 
-    // Arrow from the top list's first node down into the box, and
-    // from the bottom list's first node up into the box.
-    let top-node-bottom    = top-cy - node-h / 2
-    let bottom-node-top    = bottom-cy + node-h / 2
-    line(
-      (n1-cx, top-node-bottom), (n1-cx, box-y1),
+    // The shared box (fallback-stub implementation) dispatches out to
+    // each per-site FB stub. Leave horizontally from its right edge
+    // and enter each FB vertically at the edge nearest the box — the
+    // bottom of the top FB, the top of the bottom FB — via a cubic
+    // bezier with a right-then-up / right-then-down elbow.
+    let n2-x0 = n1-x1 + inter
+    let n2-x1 = n2-x0 + node-w
+    let n2-cx = (n2-x0 + n2-x1) / 2
+    let top-fb-bot    = top-cy - node-h / 2
+    let bottom-fb-top = bottom-cy + node-h / 2
+
+    bezier(
+      (box-x1, mid-cy),
+      (n2-cx, top-fb-bot),
+      (n2-cx, mid-cy),
+      (n2-cx, top-fb-bot - 0.4),
       mark: (end: ">"), stroke: 0.7pt + dg.ink,
     )
-    line(
-      (n1-cx, bottom-node-top), (n1-cx, box-y0),
+    bezier(
+      (box-x1, mid-cy),
+      (n2-cx, bottom-fb-top),
+      (n2-cx, mid-cy),
+      (n2-cx, bottom-fb-top + 0.4),
       mark: (end: ">"), stroke: 0.7pt + dg.ink,
     )
   })
