@@ -153,49 +153,39 @@ of the throughput of the default tiered-JIT configuration on Speedometer
 improves performance over interpretation without allowing guest-triggered
 native-code generation.
 
-V8 established a prior art in bootstrapping runtime-generated code into its
-engine binary with _Embedded Builtins_ @gruber2018builtins. In 2015, it
+V8 established prior art in bootstrapping runtime-generated code into its
+engine binary with Embedded Builtins @gruber2018builtins. V8 previously
 implemented most builtins in self-hosted JavaScript, platform-specific
-assembly, or C++. Starting in 2016, developers ported performance-sensitive
-builtins to the CodeStubAssembler (CSA). Its Torque front end now provides a
-domain-specific language for authoring builtin fast paths @v8torque. During
-the build, this separate builtin pipeline generates native bodies for
-embedding in the engine binary.
+assembly, or C++. It later ported performance-sensitive builtins to the
+CodeStubAssembler and Torque, whose separate build pipeline generates native
+bodies for embedding.
 
-Embedded Builtins initially eliminated redundant builtin copies across
-isolates. Achieving this sharing required immutable, process-independent
-instructions. The implementation replaced embedded runtime addresses with
-loads relative to a dedicated root register and retained isolate-specific
-metadata outside the shared instructions @gruber2018builtins. The resulting
-fixed corpus natrually provides native engine routines when JITless mode
-disables guest-triggered compilation @gruber2019jitless.
+Embedded Builtins make their generated bodies immutable and process
+independent, allowing isolates to share a fixed corpus. This representation
+also supplies native engine routines under JITless execution
+@gruber2018builtins @gruber2019jitless. Extending the corpus, however,
+requires developers to implement each additional function or fast path
+through V8’s builtin-specific Torque and CodeStubAssembler stack. Torque
+reduces the burden of authoring CodeStubAssembler code, but the resulting
+workflow remains separate from ordinary JavaScript and V8’s runtime JIT
+generators.
 
-AmberMonkey instead implements a reusable AOT substrate beneath SpiderMonkey's
-existing MacroAssembler interface. Transparent to top-level code-generation
-routines, AmberMonkey can be enabled with a single switch to transform
-compatible Baseline functions, inline-cache (IC) bodies, and internal JIT
-mechanisms into an AOT format.
+AmberMonkey takes a distinct approach. We extend SpiderMonkey's MacroAssembler
+with an AOT emission mode, allowing existing code generators to produce
+reusable artifacts without a parallel backend, new implementation language,
+or source annotations. AmberMonkey is therefore
+transparent to top-level code-generation routines: it can be enabled with a
+single switch to transform compatible Baseline functions, inline-cache (IC)
+bodies, and internal JIT mechanisms into an AOT format.
 
 Given the flexability of this AOT code-generation interface, we can
-provision an AOT corpus beyond statically enumerated builtins. This approach
-immediately raises an empirical question of coverage: only artifacts that
-recur frequently across workloads can justify their binary footprint. We
-examine this question at two compilation granularities: Baseline-compiled
-functions and IC bodies.
-
-Baseline compilation can acheive speedups of 2–3× over interpretation
-@titzer2024baseline. This makes Basleine compilation a compelling candidate
-for AOT compilation. Importantly, Baseline compialtion also remains type
-generic where optimizing JIT code specializes to observed runtime types.
-This reduces one constraint on reusability, as rutime type-behaviour needs
-not be replicated along with function identity to trigger reuse. The first
-portion of our empirical analysis however finds that the cross-workload
-reuse of Baseline functions is prohibitively low to justify inclusion into
-an AOT corpus. Instead, we identify #self-hosted-fn-count self-hosted
-JavaScript functions, including builtins, which can be compiled into the AOT
-image for their universal availaibility across all workloads. Notably these
-self-hosted functions require no modification, a single pass through
-AmberMonkey produces an AOT representation.
+provision an AOT corpus beyond an enumerated builtins library. Moreover,
+adding additional artifacts into our corpus does not require hand-authoring.
+The flexability enabled by AOT compiling arbitrary JavaScript immediately
+raises an empirical question of coverage: only artifacts that recur
+frequently across workloads can justify their binary footprint. We examine
+this question at two compilation granularities: Baseline-compiled functions
+and IC bodies.
 
 In Section III, we contrast the cross-workload reuse of Baseline functions
 with that of inline-cache bodies, establishing the primary empirical
@@ -207,16 +197,15 @@ IC bodies have a median static intersection of #inter-ic-jaccard-median.
 
 Static intersection gives frequent and infrequent bodies equal weight. We
 therefore also measure the directional _dynamic intersection_ from a corpus
-workload to a target workload. This metric is the fraction of body entries in
-the target whose identity also occurs in the corpus. Across separate sites,
-IC bodies achieve a median dynamic intersection of
+workload to a target workload. This metric is the fraction of body entries
+in the target whose identity also occurs in the corpus. Across separate
+sites, IC bodies achieve a median dynamic intersection of
 #inter-ic-coverage-median. Baseline functions achieve only
-#inter-baseline-coverage-median under the same dynamic measure.
-
-We attribute this partialy due to compilation granuality: Baseline
-compilation operates at coarse, whole-function granularity, whereas each IC
-body implements one operation case. Foremost, however, we attribute this
-high dynamic coverage to the strucutred design of CacheIR.
+#inter-baseline-coverage-median under the same dynamic measure. We attribute
+this partialy due to compilation granuality: Baseline compilation operates
+at coarse, whole-function granularity, whereas each IC body implements one
+operation case. Foremost, however, we attribute this high dynamic coverage
+to the strucutred design of CacheIR.
 
 CacheIR enables high cross-workload reuse through separating native stub
 code from per-site data @demooij2023cacheir. This design was deliberate
@@ -226,9 +215,26 @@ sharing to cross-process sharing across JavaScript runtimes. We elaborate on
 how the design decisions of CacheIR inform a feasible AOT corpus in section
 III.
 
-Identifying Inline Cache stubs as JIT artifacts which recur across workloads
-solves the first of two problems addressed in this work. A technical barrier
-is that JIT compilers generally assume that their native output will
+The same analysis rules out complete application functions as a general
+corpus unit. Baseline compilation can acheive speedups of 2–3× over
+interpretation @titzer2024baseline. This makes Basleine compilation a
+compelling candidate for AOT compilation. Importantly, Baseline compialtion
+also remains type generic where optimizing JIT code specializes to observed
+runtime types.
+This reduces one constraint on reusability, as rutime type-behaviour needs
+not be replicated along with function identity to trigger reuse. The first
+portion of our empirical analysis however finds that the cross-workload
+reuse of Baseline functions is prohibitively low to justify inclusion into
+an AOT corpus. Instead, we identify #self-hosted-fn-count self-hosted
+JavaScript functions, including builtins, which can be compiled into the AOT
+image for their universal availaibility across all workloads. Notably these
+self-hosted functions require no modification, a single pass through
+AmberMonkey produces an AOT representation.
+
+Recurring IC bodies and build-time-known self-hosted functions establish the
+contents of a feasible AOT corpus. The remaining challenge is to make their
+native code independent of the runtime that generated it. JIT compilers
+generally assume that their native output will
 execute in the process that generated it. By embedding absolute addresses of
 engine routines, runtime data structures, and other generated code,
 runtime-generated native code is coupled to its runtime. A reusable AOT format
@@ -1059,8 +1065,18 @@ tiers.]
 #subsection[AOT Image Installation Cost]
 
 We compare Firefox `cpstartup` on the same AOT-enabled binary with the AOT
-image enabled and disabled; both retain fallback compilation. Startup times
-are comparable across the two settings.
+image enabled and disabled; both retain fallback compilation. End-to-end
+startup times are comparable across the two settings.
+@tab-aot-attachment-cost reports per-artifact install and compile times from
+the timed pairs.
+
+#figure(
+  table-from-json("aot-attachment-cost-attachment.json"),
+  caption: [Per-artifact install and runtime-compile times during Firefox
+    `cpstartup`, averaged across content processes. `ratio` is `µs/compile`
+    over `µs/install`.],
+  placement: top,
+) <tab-aot-attachment-cost>
 
 #subsection[Indirection Overhead]
 
