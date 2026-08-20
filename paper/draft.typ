@@ -153,14 +153,14 @@ of the throughput of the default tiered-JIT configuration on Speedometer
 improves performance over interpretation without allowing guest-triggered
 native-code generation.
 
-V8 demonstrated prior art in bootstrapping runtime-generated code into its
+V8 established a prior art in bootstrapping runtime-generated code into its
 engine binary with _Embedded Builtins_ @gruber2018builtins. In 2015, it
 implemented most builtins in self-hosted JavaScript, platform-specific
 assembly, or C++. Starting in 2016, developers ported performance-sensitive
 builtins to the CodeStubAssembler (CSA). Its Torque front end now provides a
-domain-specific language for authoring builtin fast paths @v8torque. During the
-build, this separate builtin pipeline generates native bodies for embedding in
-the engine binary.
+domain-specific language for authoring builtin fast paths @v8torque. During
+the build, this separate builtin pipeline generates native bodies for
+embedding in the engine binary.
 
 Embedded Builtins initially eliminated redundant builtin copies across
 isolates. Achieving this sharing required immutable, process-independent
@@ -178,37 +178,42 @@ transform arbitrary Baseline functions, Inline Cache stubs or internal JIT
 mechanisms into an AOT format.
 
 Given the flexability of this AOT code-generation interface, we can
-provision an AOT corpus beyond a statically enumerated builtin library. This
-approach immediately raises an empirical coverage question: only artifacts
-that recur frequently across workloads can justify their binary footprint.
-We examine that question at two compilation granularities: Baseline-compiled
+provision an AOT corpus beyond statically enumerated builtins. This approach
+immediately raises an empirical question of coverage: only artifacts that
+recur frequently across workloads can justify their binary footprint. We
+examine this question at two compilation granularities: Baseline-compiled
 functions and IC bodies.
 
-Baseline compilation forms a compelling candidate for AOT compilation by
-remaining type generic where optimizing JIT code specializes to observed
-runtime types. This reduces one axis of reusability: type-behaviour must not
-recur along with function identity to trigger reuse. Baseline compiled
-functions could acheive speedups of 2–3× over interpretation
-@titzer2024baseline. The first portion of our empirical analysis finds that
-the cross-workload reuse of Baseline functions is prohibitively low to
-justify inclusion into an AOT corpus. Instead, we identify
-#self-hosted-fn-count self-hosted JavaScript functions, including builtins,
-which can be compiled into the AOT image for their universal availaibility
-across all workloads. Notably these self-hosted functions require no
-modification, a single pass through AmberMonkey produces an AOT
-representation.
+Baseline compilation can acheive speedups of 2–3× over interpretation
+@titzer2024baseline. This makes Basleine compilation a compelling candidate
+for AOT compilation. Importantly, Baseline compialtion also remains type
+generic where optimizing JIT code specializes to observed runtime types.
+This reduces one constraint on reusability, as rutime type-behaviour needs
+not be replicated along with function identity to trigger reuse. The first
+portion of our empirical analysis however finds that the cross-workload
+reuse of Baseline functions is prohibitively low to justify inclusion into
+an AOT corpus. Instead, we identify #self-hosted-fn-count self-hosted
+JavaScript functions, including builtins, which can be compiled into the AOT
+image for their universal availaibility across all workloads. Notably these
+self-hosted functions require no modification, a single pass through
+AmberMonkey produces an AOT representation.
 
 In section III we contrast the cross-process reuse of Baseline function
-compilation against Inline Cache stubs and establish the primary
-empirical contribution of this work. Across #inter-site-count websites drawn
-from Mozilla's Firefox page-load benchmark suite @mozilla2026tp6, the set of
-IC-body identities obtained from one site covers a median
-#inter-ic-coverage-median of dynamic IC-body entries observed on another. By
-contrast, the Baseline-function identities collected from one website cover
-a median #inter-baseline-coverage-median of the dynamic Baseline-function
-entries observed on another. Baseline compilation operates at coarse,
-whole-function granularity, whereas each IC body implements one operation
-case.
+compilation against Inline Cache stubs, establishing the primary empirical
+contribution of this work. Across #inter-site-count websites drawn from
+Mozilla's Firefox page-load benchmark suite @mozilla2026tp6, we first
+quantiy the static intersection of Inline Cache stubs which occur in each
+pair. Despite only a moderate static intersection of
+#inter-ic-jaccard-median, defined as the same IC stub occuring in each
+workload, the frequency weighted, or dynamic intersection was signifacntly
+higher. Defined as the stub entries occuring into ICs from the static
+intersection, weighted by all IC stub entires globally, the dynamic IC
+intersection across separate sites achieved a median coverage of #inter-ic-coverage-median.
+
+We attribute this partialy due to compilation granuality: Baseline
+compilation operates at coarse, whole-function granularity, whereas each IC
+body implements one operation case. Foremost, however, we attribute this
+high dynamic coverage to the strucutred design of CacheIR.
 
 CacheIR enables high cross-workload reuse through separating native stub
 code from per-site data @demooij2023cacheir. This design was deliberate
