@@ -193,25 +193,16 @@ another. Therefore, an AOT artifact must recur frequently across workloads.
 
 Our implementation of AmberMonkey begins with Baseline code-generation and
 Inline Caches. These artifacts exhibit contrasting granularities of
-compilation. We evaluate their cross-workload reuse in Section III,
-establishing the primary empirical contribution of this work. Across
-#inter-site-count websites drawn from Mozilla's Firefox page-load benchmark
-suite @mozilla2026tp6, we first measure the _static intersection_ for each
-pair. This metric is the fraction of distinct artifact identities observed
-in either workload that occur in both. IC bodies have a median static
-intersection of #inter-ic-jaccard-median.
-
-Static intersection gives frequent and infrequent bodies equal weight. We
-therefore also measure the directional _dynamic intersection_ from a corpus
-workload to a target workload. This metric is the fraction of body entries
-in the target whose identity also occurs in the corpus. Across separate
-sites, IC bodies achieve a median dynamic intersection of
+compilation. We evaluate their cross-workload reuse in Section III using static
+intersection to measure recurrence among distinct artifacts and directional
+dynamic intersection to account for their frequency in the target workload.
+Across #inter-site-count websites drawn from Mozilla's Firefox page-load
+benchmark suite @mozilla2026tp6, IC bodies have a median static intersection of
+#inter-ic-jaccard-median and a median dynamic intersection of
 #inter-ic-coverage-median. Baseline functions achieve only
-#inter-baseline-coverage-median under the same dynamic measure. We attribute
-this difference partly to compilation granularity: Baseline compilation
-operates at coarse, whole-function granularity, whereas each IC body implements
-one operation case. Primarily, however, we attribute the high dynamic
-intersection to CacheIR's structured design.
+#inter-baseline-coverage-median under the dynamic measure. This contrast
+reflects their compilation granularity and CacheIR's separation of native stub
+code from site-specific data.
 
 CacheIR enables high cross-workload reuse by separating native stub code from
 per-site data @demooij2023cacheir. This design deliberately enables IC stub
@@ -530,17 +521,19 @@ benchmark suite @mozilla2026tp6. We use #tp6-train-site-count websites to
 construct the corpus, which we call _tp6-Train_, and reserve the remaining
 #tp6-test-site-count websites for held-out evaluation as _tp6-Test_.
 
-We measure both static and directional dynamic intersection. For two workloads,
-static intersection is the fraction of distinct artifact identities observed
-in either workload that occur in both. For an ordered pair with corpus workload
-$A$ and target workload $B$, dynamic intersection is the fraction of entries in
-$B$ whose identity appeared in $A$. IC entries count executions of attached
-nonfallback stubs; fallback execution is excluded. We record identities and
-native-code entries during three cold page loads of the first #inter-site-count
-alphabetically ordered tp6-Train workloads @mozilla2026tp6. This deterministic
-subset was fixed without reference to the intersection results, and the
-analysis retains only guest-script events from content processes. We pool the
-three page loads rather than treating them as independent samples.
+We first measure the _static intersection_ for each workload pair. This metric
+is the fraction of distinct artifact identities observed in either workload
+that occur in both. Static intersection gives frequent and infrequent bodies
+equal weight. We therefore also measure the directional _dynamic intersection_
+from a corpus workload to a target workload. This metric is the fraction of
+body entries in the target whose identity also occurs in the corpus. IC entries
+count executions of attached nonfallback stubs; fallback execution is excluded.
+We record identities and native-code entries during three cold page loads of
+the first #inter-site-count alphabetically ordered tp6-Train workloads
+@mozilla2026tp6. This deterministic subset was fixed without reference to the
+intersection results, and the analysis retains only guest-script events from
+content processes. We pool the three page loads rather than treating them as
+independent samples.
 @fig-interworkload-coverage summarizes both measures.
 
 Across workload pairs, Baseline functions have a median static intersection of
