@@ -104,6 +104,12 @@
     let draw-list(slot-idx) = {
       let slot-cy = bc-y1 - slot-h * (slot-idx + 0.5)
 
+      // Label the source slot inside the bytecode column.
+      content(
+        ((bc-x0 + bc-x1) / 2, slot-cy),
+        dsmall[GetProp],
+      )
+
       let n1-x0 = bc-x1 + gap
       let n1-x1 = n1-x0 + node-w
       let n2-x0 = n1-x1 + inter
@@ -120,6 +126,7 @@
         (n2-x0, n1-y0), (n2-x1, n1-y1),
         stroke: 0.7pt + dg.ink, fill: white, radius: 0.12,
       )
+      content(((n2-x0 + n2-x1) / 2, slot-cy), dsmall[FB])
 
       line(
         (bc-x1, slot-cy), (n1-x0, slot-cy),
@@ -131,9 +138,49 @@
       )
     }
 
-    // Third row from the top, and second row from the bottom.
-    draw-list(2)
-    draw-list(n-slots - 2)
+    // Second row from the top (bumped up one to make room for the
+    // shared box below), and second row from the bottom.
+    let top-slot    = 1
+    let bottom-slot = n-slots - 2
+    draw-list(top-slot)
+    draw-list(bottom-slot)
+
+    // Shared box sitting between the two lists. It lives directly
+    // beneath the first (unlabelled) node of each list, so arrows go
+    // straight up and down.
+    let top-cy    = bc-y1 - slot-h * (top-slot + 0.5)
+    let bottom-cy = bc-y1 - slot-h * (bottom-slot + 0.5)
+    let mid-cy    = (top-cy + bottom-cy) / 2
+
+    let n1-x0 = bc-x1 + gap
+    let n1-x1 = n1-x0 + node-w
+    let n1-cx = (n1-x0 + n1-x1) / 2
+
+    let box-w = node-w
+    let box-h = node-h + 0.1
+    let box-x0 = n1-cx - box-w / 2
+    let box-x1 = n1-cx + box-w / 2
+    let box-y0 = mid-cy - box-h / 2
+    let box-y1 = mid-cy + box-h / 2
+
+    rect(
+      (box-x0, box-y0), (box-x1, box-y1),
+      stroke: 0.7pt + dg.ink,
+      fill: dg.wash,
+    )
+
+    // Arrow from the top list's first node down into the box, and
+    // from the bottom list's first node up into the box.
+    let top-node-bottom    = top-cy - node-h / 2
+    let bottom-node-top    = bottom-cy + node-h / 2
+    line(
+      (n1-cx, top-node-bottom), (n1-cx, box-y1),
+      mark: (end: ">"), stroke: 0.7pt + dg.ink,
+    )
+    line(
+      (n1-cx, bottom-node-top), (n1-cx, box-y0),
+      mark: (end: ">"), stroke: 0.7pt + dg.ink,
+    )
   })
 }
 
