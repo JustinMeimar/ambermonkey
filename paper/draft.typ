@@ -429,6 +429,17 @@ executable body is central to AmberMonkey's AOT corpus.
 @fig-interworkload-coverage previews the cross-workload comparison reported
 at the end of this section.
 
+#figure(
+  image("lib/figures/3-3-inter-workload-pannel.pdf", width: 100%),
+  caption: [Cross-workload reuse across the first #inter-site-count tp6-Train
+    workloads. (a) Pairwise static intersection: Baseline functions below the
+    diagonal, IC bodies above. (b, c) Directional dynamic intersection from the
+    corpus workload to the target. Operation-level ICs have substantially
+    greater static and dynamic intersection than complete functions.],
+  placement: top,
+  scope: "parent",
+) <fig-interworkload-coverage>
+
 #subsection[Executable Representation]
 
 IC systems differ in whether run-time observations select pre-generated code
@@ -566,18 +577,6 @@ This analysis identifies recurring IC bodies as useful AOT artifacts. The next
 section addresses the separate problem of making their captured native code
 independent of the runtime that generated it.
 
-#figure(
-  image("lib/figures/3-3-inter-workload-pannel.pdf", width: 100%),
-  caption: [Cross-workload reuse across the first #inter-site-count tp6-Train
-    workloads. (a) Pairwise static intersection: Baseline functions below the
-    diagonal, IC bodies above. (b, c) Directional dynamic intersection from the
-    corpus workload to the target. Operation-level ICs have substantially
-    greater static and dynamic intersection than complete functions.],
-  placement: top,
-  scope: "parent",
-) <fig-interworkload-coverage>
-
-
 #section[AmberMonkey Design]
 
 Rather than embedding runtime pointers directly in JIT code, AmberMonkey makes
@@ -591,6 +590,11 @@ resolution methods, how shared code accesses the current runtime's RIT, and
 which runtime values the table can safely contain. We first illustrate the
 runtime coupling that requires these mechanisms, then explain how dynamic
 instrumentation affects code sharing.
+
+@fig-rit-access previews the frame-based access path for concurrent VMs running
+the shared AOT Baseline Interpreter.
+
+#rit-access(placement: top)
 
 #subsection[Runtime Coupling]
 
@@ -606,6 +610,8 @@ does not identify the destination runtime's flag. The generated check requires
 the current runtime's flag, not its address in the generating process. We call
 this mismatch between a stable semantic role and its runtime-specific
 representation _runtime coupling_.
+
+#code-lowering-panel(placement: top)
 
 #subsection[Resolving External Addresses]
 
@@ -652,11 +658,6 @@ Interpreter or a Baseline-compiled function. Its fields remain at fixed offsets
 from the frame pointer regardless of which artifact is executing. AmberMonkey
 adds the RIT base to this layout, allowing shared code to recover it with one
 load while the Baseline frame remains active.
-
-@fig-rit-access illustrates this frame-based access for concurrent VMs running
-the shared AOT Baseline Interpreter.
-
-#rit-access(placement: top)
 
 Inline-cache (IC) stubs initially execute with their caller's Baseline frame
 active and therefore use the same RIT-base field. Some stubs call runtime
@@ -706,8 +707,6 @@ validation build to report the missing entry and stop. Baseline and IC
 generators can therefore continue to issue ordinary MacroAssembler operations
 without AOT-specific logic. @lst-code-lowering illustrates this interception
 and the resulting RIT access.
-
-#code-lowering-panel(placement: top)
 
 An address qualifies for the whitelist only if it remains fixed while its
 runtime can execute AOT code. The address may differ across runtimes, and the
