@@ -44,6 +44,7 @@
 #let dtitle(body)  = text(size: 8.5pt, weight: "bold", fill: dg.ink)[#body]
 #let dsmall(body)  = text(size: 7pt, fill: dg.ink)[#body]
 #let dmono(body)   = text(size: 7.5pt, font: "DejaVu Sans Mono")[#body]
+#let dtiny(body)   = text(size: 6.5pt, font: "DejaVu Sans Mono")[#body]
 
 // --- Title -----------------------------------------------------------
 #align(center)[
@@ -101,7 +102,10 @@
     let inter  = 0.7              // gap between the two nodes
 
     // Draw a two-node linked list emanating from `slot-idx` (0 = top).
-    let draw-list(slot-idx) = {
+    // `payload` is the per-site stub data that goes inside the first
+    // node — this is what distinguishes two sites that share a stub
+    // implementation.
+    let draw-list(slot-idx, payload) = {
       let slot-cy = bc-y1 - slot-h * (slot-idx + 0.5)
 
       // Label the source slot inside the bytecode column.
@@ -122,6 +126,8 @@
         (n1-x0, n1-y0), (n1-x1, n1-y1),
         stroke: 0.7pt + dg.ink, fill: white, radius: 0.12,
       )
+      content(((n1-x0 + n1-x1) / 2, slot-cy), payload)
+
       rect(
         (n2-x0, n1-y0), (n2-x1, n1-y1),
         stroke: 0.7pt + dg.ink, fill: white, radius: 0.12,
@@ -139,11 +145,13 @@
     }
 
     // Second row from the top (bumped up one to make room for the
-    // shared box below), and second row from the bottom.
+    // shared box below), and second row from the bottom. Two sites
+    // guard different shapes at different fixed-slot offsets — that's
+    // the entire per-site payload.
     let top-slot    = 1
     let bottom-slot = n-slots - 2
-    draw-list(top-slot)
-    draw-list(bottom-slot)
+    draw-list(top-slot,    dtiny[shape 0xA1 \ slot\u{00A0}\u{00A0}8])
+    draw-list(bottom-slot, dtiny[shape 0xB2 \ slot\u{00A0}16])
 
     // Shared box sitting between the two lists. It lives directly
     // beneath the first (unlabelled) node of each list, so arrows go
@@ -156,8 +164,8 @@
     let n1-x1 = n1-x0 + node-w
     let n1-cx = (n1-x0 + n1-x1) / 2
 
-    let box-w = node-w
-    let box-h = node-h + 0.1
+    let box-w = 1.8
+    let box-h = 1.05
     let box-x0 = n1-cx - box-w / 2
     let box-x1 = n1-cx + box-w / 2
     let box-y0 = mid-cy - box-h / 2
@@ -167,6 +175,11 @@
       (box-x0, box-y0), (box-x1, box-y1),
       stroke: 0.7pt + dg.ink,
       fill: dg.wash,
+      radius: 0.12,
+    )
+    content(
+      (n1-cx, mid-cy),
+      dtiny[GuardShape \ LoadSlot \ Return],
     )
 
     // Arrow from the top list's first node down into the box, and
