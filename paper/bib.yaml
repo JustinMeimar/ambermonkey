@@ -674,6 +674,13 @@ gruber2018builtins:
   date: 2018-08-14
   url: "https://v8.dev/blog/embedded-builtins"
 
+v8torque:
+  type: web
+  title: "V8 Torque User Manual"
+  author:
+    - V8 Project
+  url: "https://v8.dev/docs/torque"
+
 apple2024ios:
   type: web
   title: "Security of runtime process in iOS, iPadOS, and visionOS"

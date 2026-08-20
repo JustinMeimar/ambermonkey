@@ -84,3 +84,56 @@ engine's inter preter for jguest bytecode and a fixed IC corpus stored in a
 snapshot @fallin2025 weval. This preserves the interpreter as the source of
 truth for bytecode executi on -semantics, but requires the guest program to
 be available before AOT compilation.
+
+
+// rip intro, higher code turn than a vibe coded claude plugin
+
+V8 has demonstrated a prior art in the bootstrapping of runtime generated
+code into it's engine binary with _Embedded Builtins_ @gruber2018builtins.
+The project was initially designed to save memory by eliminating the
+redundant recompilation of common JavaScript builtins across isolate
+boundaies. By virute of an immutable, static representation, embedded
+builtins also formed a natural basis for JITless execution
+@gruber2019jitless. Beyond memory and JITless execution, the V8 team has
+since expanded the scope of embedded buitlins towards perforamnce. Standard
+library functions, such as `Array.map`, are optimized with fast paths
+through a separetly maintained Torque DSL [CITE].
+
+While V8s JITless mode has improved the performance of the engine
+considerably under restricted execution environments, it notably does not
+include arbitrary JIT artifacts on a statistical basis of cross-workload
+occurence. One reason for this is that V8s Inline Caching system is data
+driven, and therefore requires no runtime code generation in the first place.
+A structured Inline Caching system, such as CacheIR used by SpiderMonkeyruntime,
+requires runtime generation. 
+
+Nonetheless, extending a code-generation model to integrate transparently
+underneath a JIT compilation tier could allow for a more ergonomic and
+performant AOT model. In terms of developer experience, such a model could
+work automatically for all existing code generation routines, consume
+regular JavaScript, and not require an expensive DSL or alternative
+assembler to be produced.
+
+More importantly however, building an AOT system from within existing code
+generators allows for arbitrary JavaScript to be bootstraped into the engine
+on a _statistical basis_. The consideration of including such JIT artifacts
+into an AOT image immediately imposes the problem of coverage: only
+artifacts that recur frequently across workloads could justify their binary
+footprint. We examine this question at two compilation granularities:
+Baseline-compiled functions and inline-cache (IC) bodies.
+
+
+// I kinda liked this paragraph rip (08-19-2026)
+
+The diffuse nature of JavaScript workloads affects compilation policy even
+in environments where runtime code generation is enabled. Across 15,000
+popular web pages, at least 70% of the functions in half of the JavaScript
+files studied were unused @kupoluyi2022muzeel. Browser engines therefore
+avoid expending compilation resources on cold code, preferring to invoke
+Baseline compilation on demand rather than upfront. V8 and SpiderMonkey go
+further by deferring full parsing and bytecode generation for many inner
+functions until their first execution @v8preparser2019
+@mozilla2026lazyparsing. These policies demonstrate two properties of guest
+JavaScript code: it becomes known only after the engine is built, and much
+of it never executes. Whole application functions are therefore an
+unattractive default unit for a fixed AOT corpus.

@@ -4,7 +4,21 @@
 // so the draft can read a bare `#foo` and get a ready-to-print string.
 
 #import "lib/tables.typ": cell-value, json-field, cell-from-table
+#import "lib/configurations.typ": config-name, config-short, config-prose
 #import "lib/cite.typ": *
+
+
+// --- Execution-configuration display-name aliases ---
+// Never write "AmberMonkey" / "Baseline JIT" / etc. as literal strings in
+// prose or captions. Use these constants so the whole paper tracks the
+// registry at fossils/configurations.toml.
+#let interp-only-name = config-name("interp-only")
+#let interp-only-prose = config-prose("interp-only")
+#let am     = config-prose("aot-corpus")
+#let am-ic  = config-prose("aot-corpus-ic")
+#let am-ion = config-prose("aot")
+#let baseline-jit = config-prose("default-no-ion")
+#let default-ion  = config-prose("default")
 
 
 // --- 7-1 corpus construction (complete tp6-Train union) ---
