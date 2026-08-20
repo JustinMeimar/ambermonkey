@@ -30,6 +30,7 @@
   accent: rgb("#1f4e79"),
   accent-wash: rgb("#e8f0f7"),
   warm: rgb("#a5461a"),
+  warm-wash: rgb("#f6ece7"),
   ok: rgb("#2f6b3a"),
 )
 

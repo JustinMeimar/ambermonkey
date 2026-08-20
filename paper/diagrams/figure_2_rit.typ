@@ -1,16 +1,16 @@
 // Figure 2: Runtime Indirection Table and its consumers.
 
 #import "@preview/cetz:0.3.4": canvas, draw
-#import "shared.typ": diagram-document, dg, dlabel, dtitle, dmono
+#import "shared.typ": diagram-document, dg, dlabel, dtitle, dsmall, dmono
 
 #diagram-document[
   #let runtime-indirection-table = {
     let figure-w = 17.5
-    let figure-h = 4.4
-    let table-x0 = 0.55
-    let table-x1 = 3.35
+    let figure-h = 6.2
+    let table-x0 = 5.3
+    let table-x1 = 8.1
     let table-y0 = 0
-    let table-y1 = figure-h
+    let table-y1 = 4.4
     let slot-h = 0.62
 
     canvas(length: 1cm, {
@@ -19,14 +19,83 @@
       // Establish the full-width figure bounds while the remaining elements
       // are added incrementally.
       rect(
-        (0, table-y0), (figure-w, table-y1),
+        (0, table-y0), (figure-w, figure-h),
         stroke: none,
         fill: none,
       )
 
+      // Three offset, nearly square outlines represent concurrent VM
+      // instances. The foreground VM exposes the runtime components relevant
+      // to the indirection path.
+      let vm-x0 = 0.55
+      let vm-x1 = 4.05
+      let vm-y0 = 0.55
+      let vm-y1 = 3.75
+
+      for layer in (2, 1) {
+        let offset = 0.22 * layer
+        rect(
+          (vm-x0 + offset, vm-y0 + offset),
+          (vm-x1 + offset, vm-y1 + offset),
+          stroke: 0.7pt + dg.ink,
+          fill: white,
+          radius: 0.12,
+        )
+      }
+
+      rect(
+        (vm-x0, vm-y0), (vm-x1, vm-y1),
+        stroke: 0.7pt + dg.ink,
+        fill: white,
+        radius: 0.12,
+      )
+
+      let component-w = 1.35
+      let component-h = 0.9
+      let component-left = vm-x0 + 0.3
+      let component-right = vm-x1 - 0.3 - component-w
+      let component-bottom = vm-y0 + 0.6
+      let component-top = vm-y1 - 0.6 - component-h
+
+      let draw-component(x, y, label) = {
+        rect(
+          (x, y), (x + component-w, y + component-h),
+          stroke: 0.6pt + dg.ink,
+          fill: dg.wash,
+          radius: 0.1,
+        )
+        content(
+          (x + component-w / 2, y + component-h / 2),
+          dsmall(label),
+        )
+      }
+
+      draw-component(component-left, component-top, [GC])
+      draw-component(component-right, component-top, [Runtime])
+      draw-component(component-left, component-bottom, [JIT])
+      draw-component(component-right, component-bottom, [Interpreter])
+
       content(
-        ((table-x0 + table-x1) / 2, table-y1 + 0.35),
-        dtitle[RIT],
+        ((vm-x0 + vm-x1 + 0.44) / 2, vm-y0 - 0.42),
+        dtitle[Concurrent VMs],
+      )
+
+      // Two offset outlines behind the foreground table represent the
+      // multiple RIT instances present at run time.
+      for layer in (2, 1) {
+        let offset = 0.22 * layer
+        rect(
+          (table-x0 + offset, table-y0 + offset),
+          (table-x1 + offset, table-y1 + offset),
+          stroke: 0.7pt + dg.ink,
+          fill: white,
+          radius: 0.12,
+        )
+      }
+
+      content(
+        ((table-x0 + table-x1 + 0.44) / 2, table-y0 - 0.42),
+        dtitle[Per-Runtime RITs],
       )
 
       rect(
@@ -56,20 +125,45 @@
       content((index-x, table-y1 - 2.5 * slot-h), anchor: "east", dlabel[2])
       content((index-x, table-y0 + 0.5 * slot-h), anchor: "east", dlabel[511])
 
+      let slot-one-y = table-y1 - 1.5 * slot-h
+      rect(
+        (table-x0 + 0.18, slot-one-y - 0.22),
+        (table-x1 - 0.18, slot-one-y + 0.22),
+        stroke: none,
+        fill: dg.accent-wash,
+        radius: 0.08,
+      )
+      content(
+        ((table-x0 + table-x1) / 2, slot-one-y),
+        text(
+          size: 7pt,
+          font: "DejaVu Sans Mono",
+          weight: "bold",
+          fill: dg.accent,
+        )[&JSRuntime],
+      )
+
+      // The selected RIT entry resolves to the Runtime component in the
+      // foreground VM.
+      line(
+        (table-x0, slot-one-y),
+        (component-right + component-w, component-top + component-h / 2),
+        mark: (end: ">"),
+        stroke: 1pt + dg.accent,
+      )
+
       content(
         ((table-x0 + table-x1) / 2, (table-y0 + table-y1 - 2 * slot-h) / 2),
         text(size: 11pt, fill: dg.rule)[⋮],
       )
 
-      // An ahead-of-time artifact accesses slot 1 through the RIT. The
-      // highlighted RIP-relative load uses an 8-byte displacement because
-      // each table entry is one 64-bit pointer.
-      let artifact-x0 = 5.6
-      let artifact-x1 = 10.7
-      let artifact-y0 = 0.75
-      let artifact-y1 = 3.55
-      let load-y = 2.25
-      let slot-one-y = table-y1 - 1.5 * slot-h
+      // The first highlighted load retrieves the per-runtime table pointer
+      // from the frame. The second retrieves slot 1 from that table.
+      let artifact-x0 = 10.2
+      let artifact-x1 = 16.0
+      let artifact-y0 = 4.15
+      let artifact-y1 = 5.9
+      let load-y = 4.65
 
       // Draw the relationship first so the arrow terminates cleanly at the
       // table and artifact boundaries.
@@ -85,15 +179,37 @@
         fill: white,
         radius: 0.12,
       )
+      content(
+        ((artifact-x0 + artifact-x1) / 2, artifact-y0 - 0.42),
+        dtitle[AOT Baseline Interpreter],
+      )
 
       let code-x0 = artifact-x0 + 0.55
       let code-x1 = artifact-x1 - 0.35
-      let line-gap = 0.4
+      let line-gap = 0.5
 
+      content(
+        (code-x0, load-y + 2 * line-gap),
+        anchor: "west",
+        dmono[op_getprop:],
+      )
+
+      rect(
+        (code-x0 - 0.15, load-y + line-gap - 0.25),
+        (code-x1, load-y + line-gap + 0.25),
+        stroke: none,
+        fill: dg.warm-wash,
+        radius: 0.08,
+      )
       content(
         (code-x0, load-y + line-gap),
         anchor: "west",
-        dmono[pushq %rbp],
+        text(
+          size: 7.5pt,
+          font: "DejaVu Sans Mono",
+          weight: "bold",
+          fill: dg.warm,
+        )[movq -24(%rbp), %r11  \# table],
       )
       rect(
         (code-x0 - 0.15, load-y - 0.25),
@@ -110,22 +226,65 @@
           font: "DejaVu Sans Mono",
           weight: "bold",
           fill: dg.accent,
-        )[movq RIT+8(%rip), %rax],
+        )[movq   8(%r11), %rax  \# JSRuntime],
+      )
+
+      // Each runtime-generated Baseline Interpreter embeds its own runtime
+      // address directly in the handler. Two offset outlines represent the
+      // additional concurrent instances.
+      let generated-x0 = 10.2
+      let generated-x1 = 16.0
+      let generated-y0 = 0.75
+      let generated-y1 = 2.35
+
+      for layer in (2, 1) {
+        let offset = 0.22 * layer
+        rect(
+          (generated-x0 + offset, generated-y0 + offset),
+          (generated-x1 + offset, generated-y1 + offset),
+          stroke: 0.7pt + dg.ink,
+          fill: white,
+          radius: 0.12,
+        )
+      }
+
+      rect(
+        (generated-x0, generated-y0),
+        (generated-x1, generated-y1),
+        stroke: 0.7pt + dg.ink,
+        fill: white,
+        radius: 0.12,
       )
       content(
-        (code-x0, load-y - line-gap),
+        ((generated-x0 + generated-x1 + 0.44) / 2, generated-y0 - 0.42),
+        dtitle[Runtime-Generated Baseline Interpreters],
+      )
+
+      let generated-code-x0 = generated-x0 + 0.55
+      let generated-code-x1 = generated-x1 - 0.35
+      let generated-load-y = 1.35
+
+      content(
+        (generated-code-x0, generated-load-y + 0.5),
         anchor: "west",
-        dmono[testq %rax, %rax],
+        dmono[op_getprop:],
+      )
+      rect(
+        (generated-code-x0 - 0.15, generated-load-y - 0.25),
+        (generated-code-x1, generated-load-y + 0.25),
+        stroke: none,
+        fill: dg.accent-wash,
+        radius: 0.08,
       )
       content(
-        (code-x0, load-y - 2 * line-gap),
+        (generated-code-x0, generated-load-y),
         anchor: "west",
-        dmono[je .fallback],
-      )
-      content(
-        (code-x0, load-y - 3 * line-gap),
-        anchor: "west",
-        dmono[jmpq \*%rax],
+        text(
+          size: 7.5pt,
+          font: "DejaVu Sans Mono",
+          weight: "bold",
+          fill: dg.accent,
+        )[movabsq \$JSRuntime, %rax],
       )
     })
   }
