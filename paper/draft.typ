@@ -170,11 +170,10 @@ metadata outside the shared instructions @gruber2018builtins. The resulting
 fixed corpus natrually provides native engine routines when JITless mode
 disables guest-triggered compilation @gruber2019jitless.
 
-AmberMonkey takes a distinctly subliminal approach to producing resuable JIT
-code. We implement runtime-independent code generation beneath
-SpiderMonkey's existing MacroAssembler interface. Transparent to top level
-code-generation routines, AmberMonkey can be enabled with a single switch to
-transform arbitrary Baseline functions, Inline Cache stubs or internal JIT
+AmberMonkey instead implements a reusable AOT substrate beneath SpiderMonkey's
+existing MacroAssembler interface. Transparent to top-level code-generation
+routines, AmberMonkey can be enabled with a single switch to transform
+compatible Baseline functions, inline-cache (IC) bodies, and internal JIT
 mechanisms into an AOT format.
 
 Given the flexability of this AOT code-generation interface, we can
@@ -198,17 +197,21 @@ image for their universal availaibility across all workloads. Notably these
 self-hosted functions require no modification, a single pass through
 AmberMonkey produces an AOT representation.
 
-In section III we contrast the cross-process reuse of Baseline function
-compilation against Inline Cache stubs, establishing the primary empirical
+In Section III, we contrast the cross-workload reuse of Baseline functions
+with that of inline-cache bodies, establishing the primary empirical
 contribution of this work. Across #inter-site-count websites drawn from
-Mozilla's Firefox page-load benchmark suite @mozilla2026tp6, we first
-quantiy the static intersection of Inline Cache stubs which occur in each
-pair. Despite only a moderate static intersection of
-#inter-ic-jaccard-median, defined as the same IC stub occuring in each
-workload, the frequency weighted, or dynamic intersection was signifacntly
-higher. Defined as the stub entries occuring into ICs from the static
-intersection, weighted by all IC stub entires globally, the dynamic IC
-intersection across separate sites achieved a median coverage of #inter-ic-coverage-median.
+Mozilla's Firefox page-load benchmark suite @mozilla2026tp6, we first measure
+the _static intersection_ for each pair. This metric is the fraction of
+distinct artifact identities observed in either workload that occur in both.
+IC bodies have a median static intersection of #inter-ic-jaccard-median.
+
+Static intersection gives frequent and infrequent bodies equal weight. We
+therefore also measure the directional _dynamic intersection_ from a corpus
+workload to a target workload. This metric is the fraction of body entries in
+the target whose identity also occurs in the corpus. Across separate sites,
+IC bodies achieve a median dynamic intersection of
+#inter-ic-coverage-median. Baseline functions achieve only
+#inter-baseline-coverage-median under the same dynamic measure.
 
 We attribute this partialy due to compilation granuality: Baseline
 compilation operates at coarse, whole-function granularity, whereas each IC
