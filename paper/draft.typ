@@ -141,8 +141,8 @@ Speedometer 3.1.
 $space$ Restricted-execution modes prevent untrusted guest JavaScript from
 triggering just-in-time (JIT) compilation. Platforms impose these modes to
 satisfy executable-memory constraints or to reduce the compiler attack
-surface exposed to guest-controlled inputs. Contemporary JavaScript engine
-security maintains JIT compilation as a security risk. A 2026 review of V8
+surface exposed to guest-controlled inputs. JIT compilation remains a security
+risk in contemporary JavaScript engines. A 2026 review of V8
 bugs estimated that JIT compilers accounted for roughly 50% of the tracked
 vulnerabilities @gross2026state. Disabling JIT compilation, however, can
 substantially reduce application throughput. V8 initially reported a 40%
@@ -173,19 +173,17 @@ generators.
 AmberMonkey takes a distinct approach. We extend SpiderMonkey's MacroAssembler
 with an AOT emission mode, allowing existing code generators to produce
 reusable artifacts without a parallel backend, new implementation language,
-or source annotations. AmberMonkey is therefore
-transparent to top-level code-generation routines: it can be enabled with a
+or source annotations. AmberMonkey is therefore transparent to top-level
+code-generation routines: it can be enabled with a
 single switch to transform compatible Baseline functions, inline-cache (IC)
 bodies, and internal JIT mechanisms into an AOT format.
 
-Given the flexability of this AOT code-generation interface, we can
-provision an AOT corpus beyond an enumerated builtins library. Moreover,
-adding additional artifacts into our corpus does not require hand-authoring.
-The flexability enabled by AOT compiling arbitrary JavaScript immediately
-raises an empirical question of coverage: only artifacts that recur
-frequently across workloads can justify their binary footprint. We examine
-this question at two compilation granularities: Baseline-compiled functions
-and IC bodies.
+This interface lets us construct an AOT corpus beyond a library of individually
+implemented builtins. Adding artifacts does not require hand-authored
+implementations. Applying AOT compilation to existing JavaScript raises an
+empirical coverage question: only artifacts that recur frequently across
+workloads can justify their binary footprint. We examine this question at two
+compilation granularities: Baseline-compiled functions and IC bodies.
 
 In Section III, we contrast the cross-workload reuse of Baseline functions
 with that of inline-cache bodies, establishing the primary empirical
@@ -202,34 +200,30 @@ in the target whose identity also occurs in the corpus. Across separate
 sites, IC bodies achieve a median dynamic intersection of
 #inter-ic-coverage-median. Baseline functions achieve only
 #inter-baseline-coverage-median under the same dynamic measure. We attribute
-this partialy due to compilation granuality: Baseline compilation operates
-at coarse, whole-function granularity, whereas each IC body implements one
-operation case. Foremost, however, we attribute this high dynamic coverage
-to the strucutred design of CacheIR.
+this difference partly to compilation granularity: Baseline compilation
+operates at coarse, whole-function granularity, whereas each IC body implements
+one operation case. Primarily, however, we attribute the high dynamic
+intersection to CacheIR's structured design.
 
-CacheIR enables high cross-workload reuse through separating native stub
-code from per-site data @demooij2023cacheir. This design was deliberate
-to enable sharing of IC stub bodies across distinct IC sites within a
-JavaScript runtime. AmberMonkey extends this notion from intra-process
+CacheIR enables high cross-workload reuse by separating native stub code from
+per-site data @demooij2023cacheir. This design deliberately enables IC stub
+bodies to be shared across distinct IC sites within a JavaScript runtime.
+AmberMonkey extends this notion from intra-process
 sharing to cross-process sharing across JavaScript runtimes. We elaborate on
-how the design decisions of CacheIR inform a feasible AOT corpus in section
+how the design decisions of CacheIR inform a feasible AOT corpus in Section
 III.
 
 The same analysis rules out complete application functions as a general
-corpus unit. Baseline compilation can acheive speedups of 2–3× over
-interpretation @titzer2024baseline. This makes Basleine compilation a
-compelling candidate for AOT compilation. Importantly, Baseline compialtion
-also remains type generic where optimizing JIT code specializes to observed
-runtime types.
-This reduces one constraint on reusability, as rutime type-behaviour needs
-not be replicated along with function identity to trigger reuse. The first
-portion of our empirical analysis however finds that the cross-workload
-reuse of Baseline functions is prohibitively low to justify inclusion into
-an AOT corpus. Instead, we identify #self-hosted-fn-count self-hosted
-JavaScript functions, including builtins, which can be compiled into the AOT
-image for their universal availaibility across all workloads. Notably these
-self-hosted functions require no modification, a single pass through
-AmberMonkey produces an AOT representation.
+corpus unit. Baseline compilation can achieve speedups of 2–3× over
+interpretation @titzer2024baseline and remains type generic, whereas optimizing
+JIT code specializes to observed runtime types. This reduces one constraint on
+reuse because runtime type behavior need not be replicated alongside function
+identity. Our analysis nevertheless finds too little cross-workload reuse
+among Baseline functions to justify their inclusion in the AOT corpus. Instead,
+we compile #self-hosted-fn-count self-hosted JavaScript functions, including
+builtins, that are available across all workloads. These functions require no
+modification; a single pass through AmberMonkey produces their AOT
+representations.
 
 Recurring IC bodies and build-time-known self-hosted functions establish the
 contents of a feasible AOT corpus. The remaining challenge is to make their
@@ -273,11 +267,11 @@ content processes. This paper makes the following contributions:
 
    #linebreak()
 
-2. We design and implement AmberMonkey: a transparent code generation mode
+2. We design and implement AmberMonkey: a transparent code-generation mode
    in SpiderMonkey's Baseline JIT for producing AOT artifacts. We
    automatically decouple embedded pointers by first assigning each a stable
-   identity. Pointers are then obtained via loads through a _Runtime
-   Indirection Table_ (RIT), filled with live values. For a subset of
+   identity. AOT artifacts then obtain pointers through a _Runtime Indirection
+   Table_ (RIT), which each runtime fills with live values. For a subset of
    symbols visible at link time, we offload relocations to the native linker
    at zero runtime cost.
 
@@ -295,18 +289,13 @@ content processes. This paper makes the following contributions:
 
 #linebreak()
 
-In this section we outline some security considerations for restricted
-execution models. We establish that JIT compilers remain involved in
-critical vulnerability exploits (CVE), despipte auomated language models
-being deployed en-masse to identify bugs. We attribute the intricies of
-adhering to the JavaScript specification, compounded by optimization, as a
-primary reason bugs persist. Notably, semantic bugs apply to less to JIT
-compilers than interpreters. We provide an example of a mis-specified
-interpreter causing security vulnerabilites, demonstrating that all code,
-even that which is intended to improve security, _inevitably becomes part of
-the attack surface itself_. This principle compells us to design AmberMonkey
-around an exsting code generator, rather than introduce a new, semantic
-bearing implementation.
+This section outlines the security considerations that shape AmberMonkey's
+restricted-execution model. JIT compiler vulnerabilities motivate restricted
+execution, but interpreters can also introduce semantic vulnerabilities.
+JavaScript's intricate semantics affect both, while optimization adds further
+correctness obligations. We therefore build AmberMonkey around existing
+production code generators instead of introducing another implementation of
+JavaScript semantics.
 
 
 #subsection[Interpretation and Compilation]
@@ -320,7 +309,7 @@ memory-safety invariants. Notably, implementing the compiler in a
 memory-safe language does not prevent these logic errors, as generated
 instructions perform the invalid access.
 
-Recently automated bug finding has exposed security defects at scale.
+Automated bug finding has recently exposed security defects at scale.
 Mozilla reported that an early evaluation of Anthropic's Mythos Preview
 identified 271 vulnerabilities fixed in Firefox 150 @holley2026zerodays. One
 month later, Nebula Security reported CVE-2026-10702 @nebula2026ionstack.
@@ -337,7 +326,7 @@ semantics challenge both JIT compilers and interpreters; JIT compilers
 compound this complexity with optimizations that must preserve semantics.
 Microsoft’s DrumBrake WebAssembly interpreter, developed for JIT-disabled
 execution, illustrates how interpreters can also fail. Researchers reported
-23 remote-code- execution vulnerabilities involving type confusion,
+23 remote-code-execution vulnerabilities involving type confusion,
 reference-stack indexing, missing garbage-collection barriers, and incorrect
 control-flow handling @wang2026enhancedinsecurity. Although DrumBrake
 executes WebAssembly rather than JavaScript, these failures show that
@@ -408,15 +397,14 @@ by this corpus.
 
 #subsection[Inline Caching]
 
-In it's essence, Inline Caching involves specializing a generic routine with
-one or more guarded fast paths. Deutsch and Schiffman introduced the
-technique to improve dynamic method dispatch in SmallTalk
-@deutsch1984smalltalk. When a dynamic method is first invoked, a generic
-routine resolves the method based on the reciver object type. Under the
-assumption that static sites exhibit _locality_, the implementation saves
-the resolved method call and attempts to dispatch to it again upon
-subsequent invocations. This fast path guarded on the reciver type and falls
-back to generic method lookup upon failure.
+At its core, inline caching specializes a generic routine with one or more
+guarded fast paths. Deutsch and Schiffman introduced the technique to improve
+dynamic method dispatch in Smalltalk @deutsch1984smalltalk. When a dynamic
+method is first invoked, a generic routine resolves the method based on the
+receiver object's type. Assuming call-site _locality_, the implementation
+caches the resolved method and attempts the same dispatch on subsequent
+invocations. This fast path is guarded by the receiver type and falls back to
+generic method lookup upon failure.
 
 Modern inline caching systems in JavaScript adapt this design for
 polymorphic operators. SpiderMonkey associates an inline cache (IC) with
@@ -529,24 +517,25 @@ benchmark suite @mozilla2026tp6. We use #tp6-train-site-count websites to
 construct the corpus, which we call _tp6-Train_, and reserve the remaining
 #tp6-test-site-count websites for held-out evaluation as _tp6-Test_.
 
-We measure both static overlap and directional dynamic coverage. Static overlap
-is the Jaccard index of the identity sets observed in two workloads. For an
-ordered pair with corpus workload $A$ and target workload $B$, dynamic coverage
-is the fraction of entries in $B$ whose identity appeared in $A$. We record
-identities and native-code entries during repeated cold page loads of the first
-#inter-site-count alphabetically ordered tp6-Train workloads
-@mozilla2026tp6. This deterministic subset was fixed without reference to
-overlap, and the analysis retains content-process events.
+We measure both static and directional dynamic intersection. For two workloads,
+static intersection is the fraction of distinct artifact identities observed
+in either workload that occur in both. For an ordered pair with corpus workload
+$A$ and target workload $B$, dynamic intersection is the fraction of entries in
+$B$ whose identity appeared in $A$. We record identities and native-code entries
+during repeated cold page loads of the first #inter-site-count alphabetically
+ordered tp6-Train workloads @mozilla2026tp6. This deterministic subset was
+fixed without reference to the intersection results, and the analysis retains
+content-process events.
 @fig-interworkload-coverage summarizes both measures.
 
-Baseline functions have a median Jaccard overlap of
-#inter-baseline-jaccard-median, and one workload covers a median
-#inter-baseline-coverage-median of another workload's dynamic function entries.
-IC bodies have a median Jaccard overlap of #inter-ic-jaccard-median and cover a
-median #inter-ic-coverage-median of another workload's dynamic body entries.
-Of the #inter-ic-offdiag-count ordered IC pairs,
-#inter-ic-pairs-at-threshold cover at least #inter-ic-threshold-pct of target
-entries. Even the minimum pairwise IC coverage is #inter-ic-min-value.
+Across workload pairs, Baseline functions have a median static intersection of
+#inter-baseline-jaccard-median and a median dynamic intersection of
+#inter-baseline-coverage-median. IC bodies have a median static intersection of
+#inter-ic-jaccard-median and a median dynamic intersection of
+#inter-ic-coverage-median. For #inter-ic-pairs-at-threshold of the
+#inter-ic-offdiag-count ordered IC pairs, dynamic intersection is at least
+#inter-ic-threshold-pct. Even the minimum pairwise IC dynamic intersection is
+#inter-ic-min-value.
 
 Exact reuse decreases as a compilation unit incorporates more application
 context. A Baseline function combines an entire bytecode sequence, whereas an
@@ -563,7 +552,7 @@ tp6-Train workloads, occupying #ic-stub-bytes. The fixed corpus later serves
 #js3-ic-hit-rate on JetStream 3.0, neither of which participates in corpus
 construction. Section VI describes corpus construction, and Section VII
 reports held-out coverage in detail. These attachment-request rates are
-distinct from the dynamic entry coverage measured above.
+distinct from the dynamic intersection measured above.
 
 This analysis identifies recurring IC bodies as useful AOT artifacts. The next
 section addresses the separate problem of making their captured native code
@@ -572,10 +561,10 @@ independent of the runtime that generated it.
 #figure(
   image("lib/figures/3-3-inter-workload-pannel.pdf", width: 100%),
   caption: [Cross-workload reuse across the first #inter-site-count tp6-Train
-    workloads. (a) Pairwise Jaccard overlap: Baseline functions below the
-    diagonal, IC bodies above. (b, c) Fraction of target dynamic entries
-    covered by the corpus workload. Operation-level ICs give substantially
-    greater overlap and coverage than complete functions.],
+    workloads. (a) Pairwise static intersection: Baseline functions below the
+    diagonal, IC bodies above. (b, c) Directional dynamic intersection from the
+    corpus workload to the target. Operation-level ICs have substantially
+    greater static and dynamic intersection than complete functions.],
   placement: top,
   scope: "parent",
 ) <fig-interworkload-coverage>

@@ -137,3 +137,25 @@ functions until their first execution @v8preparser2019
 JavaScript code: it becomes known only after the engine is built, and much
 of it never executes. Whole application functions are therefore an
 unattractive default unit for a fixed AOT corpus.
+
+
+// 
+
+In section III we contrast the cross-process reuse of Baseline function
+compilation against Inline Cache stubs, establishing the primary empirical
+contribution of this work. Across #inter-site-count websites drawn from
+Mozilla's Firefox page-load benchmark suite @mozilla2026tp6, we first
+quantiy the static intersection of Inline Cache stubs which occur in each
+pair. Despite only a moderate static intersection of
+#inter-ic-jaccard-median, defined as the same IC stub occuring in each
+workload, the frequency weighted, or dynamic intersection was signifacntly
+higher. Defined as the stub entries occuring into ICs from the static
+intersection, weighted by all IC stub entires globally, the dynamic IC
+intersection across separate sites achieved a median coverage of #inter-ic-coverage-median.
+
+We attribute this partialy due to compilation granuality: Baseline
+compilation operates at coarse, whole-function granularity, whereas each IC
+body implements one operation case. Foremost, however, we attribute this
+high dynamic coverage to the strucutred design of CacheIR.
+
+
