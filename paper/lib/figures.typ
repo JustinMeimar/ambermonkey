@@ -44,7 +44,7 @@
   ],
 )
 
-#let ambermonkey-overview(placement: top) = [
+#let rit-access(placement: top) = [
   #figure(
     align(center)[
       #scale(x: 90%, y: 90%, reflow: true)[#ambermonkey-runtime-diagram]
@@ -59,7 +59,7 @@
       private RITs and program stacks.],
     placement: placement,
     scope: "parent",
-  ) <fig-ambermonkey-overview>
+  ) <fig-rit-access>
 ]
 
 #let cacheir-sharing-example(placement: top) = [

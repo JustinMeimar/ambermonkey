@@ -1,4 +1,4 @@
-#import "lib/figures.typ": ambermonkey-overview, aot-image-layout, cacheir-sharing-example, code-lowering-panel, image-relocation-scaffold
+#import "lib/figures.typ": rit-access, aot-image-layout, cacheir-sharing-example, code-lowering-panel, image-relocation-scaffold
 #import "lib/tables.typ": table-from-json
 #import "lib/configurations.typ": config-table-from-json
 #import "constants.typ": *
@@ -653,6 +653,11 @@ from the frame pointer regardless of which artifact is executing. AmberMonkey
 adds the RIT base to this layout, allowing shared code to recover it with one
 load while the Baseline frame remains active.
 
+@fig-rit-access illustrates this frame-based access for concurrent VMs running
+the shared AOT Baseline Interpreter.
+
+#rit-access(placement: top)
+
 Inline-cache (IC) stubs initially execute with their caller's Baseline frame
 active and therefore use the same RIT-base field. Some stubs call runtime
 helpers that can trigger garbage collection. When a helper requires such a
@@ -762,14 +767,10 @@ that eliminate selected RIT accesses.
 
 #subsection[Image Construction]
 
-AmberMonkey constructs the deployed image through a recording build and a
+AmberMonkey constructs the AOT image through a recording build and a
 final build. The recording build captures artifacts while executing the
 self-hosted library and tp6-Train. A packing script serializes these artifacts,
 and the final build embeds the resulting image in the engine library.
-@fig-ambermonkey-overview shows how the deployed AOT Baseline Interpreter
-resolves runtime-private state after installation.
-
-#ambermonkey-overview(placement: top)
 
 Each selected artifact contributes native instructions and the metadata needed
 to reconstruct one SpiderMonkey JIT object. Baseline metadata identifies
