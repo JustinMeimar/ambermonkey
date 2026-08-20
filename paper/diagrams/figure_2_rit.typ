@@ -3,15 +3,16 @@
 #import "@preview/cetz:0.3.4": canvas, draw
 #import "shared.typ": diagram-document, dg, dlabel, dtitle, dsmall, dmono
 
-#diagram-document[
-  #let runtime-indirection-table = {
+#let ambermonkey-runtime-diagram = {
     let figure-w = 17.5
-    let figure-h = 6.2
+    let figure-h = 4.4
     let table-x0 = 5.3
-    let table-x1 = 8.1
+    let table-x1 = 7.5
     let table-y0 = 0
     let table-y1 = 4.4
     let slot-h = 0.62
+    let slot-one-y = table-y1 - 1.5 * slot-h
+    let rotate-content = rotate
 
     canvas(length: 1cm, {
       import draw: *
@@ -28,7 +29,7 @@
       // instances. The foreground VM exposes the runtime components relevant
       // to the indirection path.
       let vm-x0 = 0.55
-      let vm-x1 = 4.05
+      let vm-x1 = 3.85
       let vm-y0 = 0.55
       let vm-y1 = 3.75
 
@@ -50,7 +51,7 @@
         radius: 0.12,
       )
 
-      let component-w = 1.35
+      let component-w = 1.25
       let component-h = 0.9
       let component-left = vm-x0 + 0.3
       let component-right = vm-x1 - 0.3 - component-w
@@ -80,6 +81,23 @@
         dtitle[Concurrent VMs],
       )
 
+      // Draw this pointer before the RIT layers so it passes behind them.
+      line(
+        (table-x0, slot-one-y),
+        (component-right + component-w, component-top + component-h / 2),
+        mark: (end: ">"),
+        stroke: 1pt + dg.accent,
+      )
+
+      // A runtime-generated interpreter embeds %JSRuntime directly. Draw its
+      // direct path before the RIT layers so the pointer passes behind them.
+      line(
+        (8.4, 0.72),
+        (component-right + component-w, component-top + 0.2),
+        mark: (end: ">"),
+        stroke: 1pt + dg.accent,
+      )
+
       // Two offset outlines behind the foreground table represent the
       // multiple RIT instances present at run time.
       for layer in (2, 1) {
@@ -95,7 +113,7 @@
 
       content(
         ((table-x0 + table-x1 + 0.44) / 2, table-y0 - 0.42),
-        dtitle[Per-Runtime RITs],
+        dtitle[RITs],
       )
 
       rect(
@@ -125,7 +143,6 @@
       content((index-x, table-y1 - 2.5 * slot-h), anchor: "east", dlabel[2])
       content((index-x, table-y0 + 0.5 * slot-h), anchor: "east", dlabel[511])
 
-      let slot-one-y = table-y1 - 1.5 * slot-h
       rect(
         (table-x0 + 0.18, slot-one-y - 0.22),
         (table-x1 - 0.18, slot-one-y + 0.22),
@@ -143,15 +160,6 @@
         )[&JSRuntime],
       )
 
-      // The selected RIT entry resolves to the Runtime component in the
-      // foreground VM.
-      line(
-        (table-x0, slot-one-y),
-        (component-right + component-w, component-top + component-h / 2),
-        mark: (end: ">"),
-        stroke: 1pt + dg.accent,
-      )
-
       content(
         ((table-x0 + table-x1) / 2, (table-y0 + table-y1 - 2 * slot-h) / 2),
         text(size: 11pt, fill: dg.rule)[⋮],
@@ -159,11 +167,11 @@
 
       // The first highlighted load retrieves the per-runtime table pointer
       // from the frame. The second retrieves slot 1 from that table.
-      let artifact-x0 = 10.2
-      let artifact-x1 = 16.0
-      let artifact-y0 = 4.15
-      let artifact-y1 = 5.9
-      let load-y = 4.65
+      let artifact-x0 = 8.8
+      let artifact-x1 = 13.35
+      let artifact-y0 = 2.8
+      let artifact-y1 = 4.35
+      let load-y = 3.25
 
       // Draw the relationship first so the arrow terminates cleanly at the
       // table and artifact boundaries.
@@ -180,13 +188,13 @@
         radius: 0.12,
       )
       content(
-        ((artifact-x0 + artifact-x1) / 2, artifact-y0 - 0.42),
+        ((artifact-x0 + artifact-x1) / 2, artifact-y1 + 0.35),
         dtitle[AOT Baseline Interpreter],
       )
 
       let code-x0 = artifact-x0 + 0.55
       let code-x1 = artifact-x1 - 0.35
-      let line-gap = 0.5
+      let line-gap = 0.45
 
       content(
         (code-x0, load-y + 2 * line-gap),
@@ -209,7 +217,7 @@
           font: "DejaVu Sans Mono",
           weight: "bold",
           fill: dg.warm,
-        )[movq -24(%rbp), %r11  \# table],
+        )[movq -24(%rbp), %r11],
       )
       rect(
         (code-x0 - 0.15, load-y - 0.25),
@@ -226,16 +234,16 @@
           font: "DejaVu Sans Mono",
           weight: "bold",
           fill: dg.accent,
-        )[movq   8(%r11), %rax  \# JSRuntime],
+        )[movq 8(%r11), %rax],
       )
 
       // Each runtime-generated Baseline Interpreter embeds its own runtime
       // address directly in the handler. Two offset outlines represent the
       // additional concurrent instances.
-      let generated-x0 = 10.2
-      let generated-x1 = 16.0
-      let generated-y0 = 0.75
-      let generated-y1 = 2.35
+      let generated-x0 = 8.4
+      let generated-x1 = 13.1
+      let generated-y0 = 0.35
+      let generated-y1 = 1.55
 
       for layer in (2, 1) {
         let offset = 0.22 * layer
@@ -257,12 +265,12 @@
       )
       content(
         ((generated-x0 + generated-x1 + 0.44) / 2, generated-y0 - 0.42),
-        dtitle[Runtime-Generated Baseline Interpreters],
+        align(center)[#dtitle[Runtime-Generated \ Baseline Interpreters]],
       )
 
       let generated-code-x0 = generated-x0 + 0.55
       let generated-code-x1 = generated-x1 - 0.35
-      let generated-load-y = 1.35
+      let generated-load-y = 0.72
 
       content(
         (generated-code-x0, generated-load-y + 0.5),
@@ -284,10 +292,93 @@
           font: "DejaVu Sans Mono",
           weight: "bold",
           fill: dg.accent,
-        )[movabsq \$JSRuntime, %rax],
+        )[movabsq %JSRuntime, %rax],
+      )
+
+      // Reserve the far-right column for the program stack. Its entries are
+      // intentionally schematic until the frame layout is introduced.
+      let stack-x0 = 14.45
+      let stack-x1 = 16.6
+      let stack-y0 = 0
+      let stack-y1 = 4.4
+      let stack-slot-h = (stack-y1 - stack-y0) / 6
+
+      for layer in (2, 1) {
+        let offset = 0.22 * layer
+        rect(
+          (stack-x0 + offset, stack-y0 + offset),
+          (stack-x1 + offset, stack-y1 + offset),
+          stroke: 0.7pt + dg.ink,
+          fill: white,
+          radius: 0.12,
+        )
+      }
+
+      rect(
+        (stack-x0, stack-y0), (stack-x1, stack-y1),
+        stroke: 0.7pt + dg.ink,
+        fill: white,
+        radius: 0.12,
+      )
+      for i in range(1, 6) {
+        let y = stack-y0 + i * stack-slot-h
+        line(
+          (stack-x0, y), (stack-x1, y),
+          stroke: 0.6pt + dg.rule,
+        )
+      }
+      let rit-field-y = stack-y1 - 1.5 * stack-slot-h
+      rect(
+        (stack-x0 + 0.18, rit-field-y - 0.24),
+        (stack-x1 - 0.18, rit-field-y + 0.24),
+        stroke: none,
+        fill: dg.warm-wash,
+        radius: 0.08,
+      )
+      content(
+        ((stack-x0 + stack-x1) / 2, rit-field-y),
+        text(
+          size: 7pt,
+          font: "DejaVu Sans Mono",
+          weight: "bold",
+          fill: dg.warm,
+        )[&RIT],
+      )
+
+      // Bracket the portion of the stack occupied by the Baseline frame.
+      let frame-y0 = stack-y0 + stack-slot-h
+      let frame-y1 = stack-y1 - stack-slot-h
+      let bracket-x = stack-x0 - 0.16
+      line(
+        (bracket-x, frame-y0), (bracket-x, frame-y1),
+        stroke: 0.7pt + dg.ink,
+      )
+      line(
+        (bracket-x, frame-y0), (bracket-x + 0.16, frame-y0),
+        stroke: 0.7pt + dg.ink,
+      )
+      line(
+        (bracket-x, frame-y1), (bracket-x + 0.16, frame-y1),
+        stroke: 0.7pt + dg.ink,
+      )
+      content(
+        (bracket-x - 0.24, (frame-y0 + frame-y1) / 2),
+        rotate-content(-90deg, dsmall[Baseline Frame]),
+      )
+      content(
+        ((stack-x0 + stack-x1 + 0.44) / 2, stack-y0 - 0.42),
+        dtitle[Program Stacks],
+      )
+
+      // The AOT handler loads the RIT pointer from its Baseline frame.
+      line(
+        (artifact-x1, load-y + line-gap), (stack-x0, rit-field-y),
+        mark: (end: ">"),
+        stroke: 1pt + dg.warm,
       )
     })
-  }
+}
 
-  #figure(runtime-indirection-table)
+#diagram-document[
+  #figure(ambermonkey-runtime-diagram)
 ]

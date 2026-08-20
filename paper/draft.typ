@@ -765,8 +765,8 @@ AmberMonkey constructs the deployed image through a recording build and a
 final build. The recording build captures artifacts while executing the
 self-hosted library and tp6-Train. A packing script serializes these artifacts,
 and the final build embeds the resulting image in the engine library.
-@fig-ambermonkey-overview summarizes this pipeline and subsequent runtime
-installation.
+@fig-ambermonkey-overview shows how the deployed AOT Baseline Interpreter
+resolves runtime-private state after installation.
 
 #ambermonkey-overview(placement: top)
 

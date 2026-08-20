@@ -1,3 +1,6 @@
+#import "../diagrams/figure_1_ic.typ": ic-shared-diagram
+#import "../diagrams/figure_2_rit.typ": ambermonkey-runtime-diagram
+
 #let fig-desc(body, title: "Figure description") = block(
   fill: luma(245),
   stroke: (left: 3pt + luma(180)),
@@ -43,116 +46,36 @@
 
 #let ambermonkey-overview(placement: top) = [
   #figure(
-    grid(
-      columns: (1fr, auto, 1fr, auto, 1.15fr),
-      gutter: 7pt,
-      align: horizon,
-      _overview-box(
-        [1. Capture],
-        [Baseline code generators #linebreak()
-         $arrow.r$ AOT-aware assembler #linebreak()
-         $arrow.r$ code and reconstruction metadata],
-      ),
-      text(size: 12pt)[$arrow.r$],
-      _overview-box(
-        [2. Build image],
-        [Select and pack artifacts #linebreak()
-         $arrow.r$ serialize typed metadata #linebreak()
-         $arrow.r$ form page-aligned image],
-        stroke: luma(85),
-      ),
-      text(size: 12pt)[$arrow.r$],
-      _overview-box(
-        [3. Bind runtimes],
-        [*Shared:* one image-backed text range #linebreak()
-         *Runtime A:* metadata + table A #linebreak()
-         *Runtime B:* metadata + table B],
-      ),
-    ),
+    align(center)[
+      #scale(x: 90%, y: 90%, reflow: true)[#ambermonkey-runtime-diagram]
+    ],
     kind: image,
     supplement: [Figure],
-    caption: [AmberMonkey captures code from SpiderMonkey's existing Baseline
-      code generators, packs selected artifacts into an immutable image, and
-      binds runtime dependencies separately for each runtime. Runtime-private
-      wrappers and tables refer to the same file-backed instruction ranges
-      without copying their bytes.],
+    caption: [Runtime Indirection Table (RIT) access. The shared ahead-of-time
+      (AOT) Baseline Interpreter loads the current RIT from its Baseline frame
+      and resolves `JSRuntime` through slot 1. Runtime-generated Baseline
+      Interpreters instead embed the runtime address directly. Indirection lets
+      concurrent virtual machines (VMs) use one AOT interpreter while retaining
+      private RITs and program stacks.],
     placement: placement,
     scope: "parent",
   ) <fig-ambermonkey-overview>
 ]
 
-#let cacheir-sharing-example(placement: top) = {
-  show raw.where(block: true): set text(
-    font: "DejaVu Sans Mono",
-    size: 6.2pt,
-  )
-
-  let program = ```text
-  object = GuardToObject(input)
-  GuardShape(object, field 0)
-  result = LoadFixedSlot(object, field 1)
-  Return(result)
-  ```
-
-  [
-    #figure(
-      block(
-        width: 100%,
-        inset: (x: 6pt, y: 4pt),
-        [
-          #_overview-box(
-            [Shared CacheIR identity],
-            [
-              #text(size: 6.7pt)[*Cache kind:* property load]
-              #v(2pt)
-              #raw(program.text, lang: "text", block: true, theme: none)
-              #text(size: 6.7pt)[*Field layout:* shape, integer offset]
-            ],
-            fill: luma(247),
-            stroke: luma(85),
-          )
-          #align(center)[
-            #text(size: 6.7pt)[Baseline CacheIR compilation]
-            #linebreak()
-            #text(size: 10pt)[↓]
-          ]
-          #_overview-box(
-            [One native stub body],
-            [Loads both values from the current stub's private field vector.],
-            fill: luma(238),
-            stroke: luma(85),
-          )
-          #v(3pt)
-          #align(center)[#text(size: 6.7pt)[Both IC sites call the same body]]
-          #v(2pt)
-          #grid(
-            columns: (1fr, 1fr),
-            gutter: 7pt,
-            _overview-box(
-              [Site A: private fields],
-              [`field 0 = Shape A` #linebreak()
-               `field 1 = offset 16`],
-            ),
-            _overview-box(
-              [Site B: private fields],
-              [`field 0 = Shape B` #linebreak()
-               `field 1 = offset 32`],
-            ),
-          )
-        ],
-      ),
-      kind: image,
-      supplement: [Figure],
-      caption: [CacheIR separates a fast path's structural identity from its
-        site-specific values. The Baseline CacheIR compiler emits one native
-        body for the shared program and field layout. Each IC site supplies a
-        private field vector when it executes that body. Program syntax and
-        values are schematic.],
-      placement: placement,
-      scope: "column",
-    ) <fig-cacheir-sharing>
-  ]
-}
+#let cacheir-sharing-example(placement: top) = [
+  #figure(
+    ic-shared-diagram,
+    kind: image,
+    supplement: [Figure],
+    caption: [CacheIR separates a fast path's structural identity from its
+      site-specific values. The Baseline CacheIR compiler emits one native
+      body for the shared program and field layout. Each IC site supplies a
+      private field vector when it executes that body. Program syntax and
+      values are schematic.],
+    placement: placement,
+    scope: "column",
+  ) <fig-cacheir-sharing>
+]
 
 #let _image-layout-region(title, detail, fill: white, stroke: luma(145), inset: 4pt) = block(
   width: 100%,
