@@ -418,16 +418,16 @@ stub's guards match the observed operands, object shapes, or callee
 @demooij2023cacheir.
 
 SpiderMonkey lazily compiles specialized IC stubs through the fallback stub.
-Each IC chain initially contains only this fallback. When no specialized stub
-matches, the fallback computes the generic result and attempts to compile a
-stub for the observed case. It prepends the new stub to the linked list so that
-the most recently observed case is tested first. An attached _IC stub_ contains
-chain linkage, an entry counter, and metadata holding CacheIR and site-specific
-data. It also points to a native _stub body_ that implements its guards and fast
-operation @demooij2023cacheir. This separation between an attached stub and its
-executable body is central to AmberMonkey's AOT corpus.
-@fig-interworkload-coverage previews the cross-workload comparison reported
-at the end of this section.
+Each IC chain initially contains only this fallback. When no specialized
+stub matches, the fallback computes the generic result and attempts to
+compile a stub for the observed case. It prepends the new stub to the linked
+list so that the most recently observed case is tested first. An attached
+_IC stub_ contains chain linkage, an entry counter, and metadata holding
+CacheIR and site-specific data. It also points to a native _stub body_ that
+implements its guards and fast operation @demooij2023cacheir. This
+separation between an attached stub and its executable body is central to
+AmberMonkey's AOT corpus. @fig-interworkload-coverage previews the
+cross-workload comparison reported at the end of this section.
 
 #figure(
   image("lib/figures/3-3-inter-workload-pannel.pdf", width: 100%),
@@ -579,20 +579,19 @@ independent of the runtime that generated it.
 
 #section[AmberMonkey Design]
 
-Rather than embedding runtime pointers directly in JIT code, AmberMonkey makes
-them available through a per-runtime side table, the _Runtime Indirection Table_
-(RIT). AOT artifacts access RIT entries at deterministic offsets that remain
-stable across processes. Each runtime populates its RIT during JIT
-initialization, allowing one AOT artifact to execute in multiple runtimes.
-AmberMonkey resolves other external addresses through artifact-relative
-references or native-linker relocations. This section describes these
-resolution methods, how shared code accesses the current runtime's RIT, and
-which runtime values the table can safely contain. We first illustrate the
-runtime coupling that requires these mechanisms, then explain how dynamic
-instrumentation affects code sharing.
-
-@fig-rit-access previews the frame-based access path for concurrent VMs running
-the shared AOT Baseline Interpreter.
+Rather than embedding runtime pointers directly in JIT code, AmberMonkey
+makes them available through a per-runtime side table, the _Runtime
+Indirection Table_ (RIT). AOT artifacts access RIT entries at deterministic
+offsets that remain stable across processes. Each runtime populates its RIT
+during JIT initialization, allowing one AOT artifact to execute in multiple
+runtimes. AmberMonkey resolves other external addresses through
+artifact-relative references or native-linker relocations. This section
+describes these resolution methods, how shared code accesses the current
+runtime's RIT, and which runtime values the table can safely contain. We
+first illustrate the runtime coupling that requires these mechanisms, then
+explain how dynamic instrumentation affects code sharing. @fig-rit-access
+demonsrtates the frame-based access path for concurrent VMs running the
+shared AOT Baseline Interpreter.
 
 #rit-access(placement: top)
 
