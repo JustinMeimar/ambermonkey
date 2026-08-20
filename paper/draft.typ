@@ -427,7 +427,6 @@ chain linkage, an entry counter, and metadata holding CacheIR and site-specific
 data. It also points to a native _stub body_ that implements its guards and fast
 operation @demooij2023cacheir. This separation between an attached stub and its
 executable body is central to AmberMonkey's AOT corpus.
-
 @fig-interworkload-coverage previews the cross-workload comparison reported
 at the end of this section.
 
@@ -580,8 +579,8 @@ independent of the runtime that generated it.
 
 #section[AmberMonkey Design]
 
-AmberMonkey makes runtime pointers that JIT code ordinarily embeds directly
-available through a per-runtime side table, the _Runtime Indirection Table_
+Rather than embedding runtime pointers directly in JIT code, AmberMonkey makes
+them available through a per-runtime side table, the _Runtime Indirection Table_
 (RIT). AOT artifacts access RIT entries at deterministic offsets that remain
 stable across processes. Each runtime populates its RIT during JIT
 initialization, allowing one AOT artifact to execute in multiple runtimes.
@@ -593,12 +592,6 @@ runtime coupling that requires these mechanisms, then explain how dynamic
 instrumentation affects code sharing.
 
 #subsection[Runtime Coupling]
-
-Firefox executes untrusted web JavaScript in sandboxed content processes
-@mozilla2026processmodel. Each process maps the same engine library, but
-SpiderMonkey associates generated Baseline infrastructure and IC state with
-a particular JavaScript runtime. AmberMonkey must preserve this private
-state while moving selected executable bodies into the shared library.
 
 Baseline generation embeds concrete addresses of runtime-specific state in
 native instructions. Panel (a) of @lst-code-lowering shows a simplified
@@ -792,9 +785,7 @@ AmberMonkey identifies each Baseline function with a 160-bit SHA-1 digest of
 compiler-visible script state, including flags, frame and IC layout, scope
 structure, and immutable bytecode metadata. SpiderMonkey's 32-bit script-data
 hash only filters candidates, while installation requires full-digest equality.
-An image-wide configuration record separately captures Baseline code-generation
-settings, Spectre mitigations, and relevant thresholds, which the loader checks
-before installation. The prototype does not compare canonical inputs after a
+The prototype does not compare canonical inputs after a
 digest match, so a complete SHA-1 collision remains a limitation.
 
 A declarative YAML schema defines the fixed fields and typed arrays for each

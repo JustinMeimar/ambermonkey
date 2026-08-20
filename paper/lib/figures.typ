@@ -1,4 +1,3 @@
-
 #let fig-desc(body, title: "Figure description") = block(
   fill: luma(245),
   stroke: (left: 3pt + luma(180)),
