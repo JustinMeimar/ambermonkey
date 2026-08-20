@@ -1039,16 +1039,23 @@ AmberMonkey's restricted-execution configuration: both prohibit
 guest-triggered JavaScript code emission and rely on precompiled artifacts plus
 a generic interpreter to execute JavaScript. Unlike V8 Jitless, AmberMonkey
 still generates deterministic infrastructure during initialization. We compare
-the two engines on Speedometer 3.1 and JetStream 3.0 to place AmberMonkey's recovered
-throughput on an absolute cross-engine footing rather than a purely
-intra-SpiderMonkey ratio.
+the two engines on Speedometer 3.1 to place AmberMonkey's recovered throughput
+on an absolute cross-engine footing rather than a purely intra-SpiderMonkey
+ratio.
 
-#TODO[Collect V8 Jitless numbers (Chrome/Node with `--jitless`) on the same
-hardware and Raptor harness. Report per-suite geometric means for
-(i) V8 default, (ii) V8 Jitless, and (iii) AmberMonkey AOT-only, alongside
-the Jitless-to-default fraction for each engine so the two restricted
-configurations can be compared as fractions of their respective unrestricted
-tiers.]
+@tab-jitless-comparison reports Speedometer 3.1 scores for each engine's
+default and restricted configuration, averaged over three runs. V8 Jitless
+retains 66.2% of V8's default throughput, while AmberMonkey retains 57.5% of
+SpiderMonkey's default throughput. Both restricted configurations sit in the
+same neighborhood as fractions of their respective unrestricted tiers.
+
+#figure(
+  table-from-json("7-4-jitless-comparison.json"),
+  caption: [Speedometer 3.1 scores (runs/minute, n=3) for each engine's
+    default and restricted configuration. `Fraction of default` gives the
+    restricted-to-default ratio within each engine.],
+  placement: top,
+) <tab-jitless-comparison>
 
 #subsection[AOT Image Installation Cost]
 

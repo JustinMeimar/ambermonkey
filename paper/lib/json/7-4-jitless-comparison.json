@@ -1,0 +1,45 @@
+{
+  "columns": [
+    {
+      "key": "engine",
+      "label": "Engine",
+      "format": "str",
+      "align": "left"
+    },
+    {
+      "key": "configuration",
+      "label": "Configuration",
+      "format": "str",
+      "align": "left"
+    },
+    {
+      "key": "score",
+      "label": "Score",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "score_stdev",
+      "label": "Score stdev",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "fraction_of_default",
+      "label": "Fraction of default",
+      "format": "percent",
+      "align": "right"
+    }
+  ],
+  "rows": [
+    ["V8", "default", 28.4, 0.6, 1.0],
+    ["V8", "jitless", 18.8, 0.4, 0.6619718309859155],
+    ["SpiderMonkey", "default", 13.068, 0.057, 1.0],
+    ["SpiderMonkey", "AmberMonkey", 7.508, 0.047, 0.5745185563065935]
+  ],
+  "workload": "speedometer3",
+  "runs_per_variant": 3,
+  "v8_jitless_over_default": 0.6619718309859155,
+  "ambermonkey_over_default": 0.5745185563065935,
+  "ambermonkey_over_jitless_fraction": 0.867961633067
+}
