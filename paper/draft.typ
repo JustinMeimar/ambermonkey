@@ -430,12 +430,25 @@ AmberMonkey's AOT corpus. @fig-interworkload-coverage previews the
 cross-workload comparison reported at the end of this section.
 
 #figure(
-  image("lib/figures/3-3-inter-workload-pannel.pdf", width: 100%),
-  caption: [Cross-workload reuse across the first #inter-site-count tp6-Train
-    workloads. (a) Pairwise static intersection: Baseline functions below the
-    diagonal, IC bodies above. (b, c) Directional dynamic intersection from the
-    corpus workload to the target. Operation-level ICs have substantially
-    greater static and dynamic intersection than complete functions.],
+  grid(
+    columns: (2.7fr, 1fr),
+    gutter: 10pt,
+    align: horizon,
+    image("lib/figures/3-3-inter-workload-pannel.pdf", width: 100%),
+    text(size: 8.5pt)[
+      #align(center)[
+        Static intersection
+        $ S(A, B) = (|I(A) sect I(B)|) / (|I(A) union I(B)|) $
+        #v(0.6em)
+        Dynamic intersection
+        $ D(A, B) = (sum_(i in I(A) sect I(B)) n_B(i)) / (sum_(i in I(B)) n_B(i)) $
+      ]
+    ],
+  ),
+  caption: [Pairwise IC-body reuse across the first #inter-site-count
+    tp6-Train workloads. (a) Static intersection $S(A, B)$. (b) Directional
+    dynamic intersection $D(A, B)$ from source workload $A$ to evaluated
+    workload $B$.],
   placement: top,
   scope: "parent",
 ) <fig-interworkload-coverage>

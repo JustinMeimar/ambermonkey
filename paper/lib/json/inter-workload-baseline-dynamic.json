@@ -1,0 +1,150 @@
+{
+  "columns": [
+    {
+      "key": "row",
+      "label": "Source",
+      "align": "left",
+      "format": "str"
+    },
+    {
+      "key": "amazon",
+      "label": "Amazon",
+      "align": "right",
+      "format": "str"
+    },
+    {
+      "key": "bing-search",
+      "label": "Bing Search",
+      "align": "right",
+      "format": "str"
+    },
+    {
+      "key": "buzzfeed",
+      "label": "BuzzFeed",
+      "align": "right",
+      "format": "str"
+    },
+    {
+      "key": "cnn",
+      "label": "CNN",
+      "align": "right",
+      "format": "str"
+    },
+    {
+      "key": "ebay",
+      "label": "eBay",
+      "align": "right",
+      "format": "str"
+    },
+    {
+      "key": "espn",
+      "label": "ESPN",
+      "align": "right",
+      "format": "str"
+    },
+    {
+      "key": "expedia",
+      "label": "Expedia",
+      "align": "right",
+      "format": "str"
+    },
+    {
+      "key": "facebook",
+      "label": "Facebook",
+      "align": "right",
+      "format": "str"
+    }
+  ],
+  "rows": [
+    [
+      "Amazon",
+      "\u2014",
+      "1.3%",
+      "0.5%",
+      "5.9%",
+      "1.3%",
+      "1.1%",
+      "0.9%",
+      "0.6%"
+    ],
+    [
+      "Bing Search",
+      "2.7%",
+      "\u2014",
+      "1.2%",
+      "11.1%",
+      "2.0%",
+      "1.4%",
+      "1.3%",
+      "0.5%"
+    ],
+    [
+      "BuzzFeed",
+      "3.3%",
+      "4.3%",
+      "\u2014",
+      "11.6%",
+      "32.2%",
+      "5.5%",
+      "2.4%",
+      "1.8%"
+    ],
+    [
+      "CNN",
+      "1.4%",
+      "1.3%",
+      "0.6%",
+      "\u2014",
+      "1.2%",
+      "4.2%",
+      "0.3%",
+      "0.3%"
+    ],
+    [
+      "eBay",
+      "3.6%",
+      "1.6%",
+      "11.6%",
+      "11.1%",
+      "\u2014",
+      "4.4%",
+      "0.7%",
+      "1.0%"
+    ],
+    [
+      "ESPN",
+      "3.4%",
+      "1.7%",
+      "5.1%",
+      "18.9%",
+      "12.0%",
+      "\u2014",
+      "0.7%",
+      "1.1%"
+    ],
+    [
+      "Expedia",
+      "3.8%",
+      "2.4%",
+      "3.3%",
+      "8.9%",
+      "6.4%",
+      "2.2%",
+      "\u2014",
+      "0.8%"
+    ],
+    [
+      "Facebook",
+      "3.3%",
+      "1.1%",
+      "1.2%",
+      "5.0%",
+      "1.4%",
+      "1.1%",
+      "0.4%",
+      "\u2014"
+    ]
+  ],
+  "text_size": 7,
+  "cell_inset": 3
+}

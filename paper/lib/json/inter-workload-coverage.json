@@ -1,4 +1,5 @@
 {
+  "baseline_coverage_max": 0.32226855766726575,
   "baseline_coverage_per_target": {
     "amazon": {
       "max": 0.03833372344698644,
@@ -33,6 +34,7 @@
       "min": 0.003418944448095669
     }
   },
+  "baseline_static_max": 0.11297271421732887,
   "ic_coverage_argmin": {
     "corpus": "cnn",
     "target": "ebay",
