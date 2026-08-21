@@ -1,0 +1,78 @@
+{
+  "columns": [
+    {
+      "key": "engine",
+      "label": "Engine",
+      "format": "str",
+      "align": "left"
+    },
+    {
+      "key": "configuration",
+      "label": "Configuration",
+      "format": "str",
+      "align": "left"
+    },
+    {
+      "key": "score",
+      "label": "Score",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "score_stdev",
+      "label": "Score stdev",
+      "format": "float",
+      "align": "right"
+    },
+    {
+      "key": "fraction_of_default",
+      "label": "Fraction of default",
+      "format": "percent",
+      "align": "right"
+    }
+  ],
+  "rows": [
+    [
+      "V8",
+      "default",
+      28.4,
+      0.6,
+      1.0
+    ],
+    [
+      "V8",
+      "jitless",
+      18.8,
+      0.4,
+      0.662
+    ],
+    [
+      "SpiderMonkey",
+      "default",
+      11.494,
+      0.0,
+      1.0
+    ],
+    [
+      "SpiderMonkey",
+      "interpreter-only",
+      4.587,
+      0.0,
+      0.3991
+    ],
+    [
+      "SpiderMonkey",
+      "AmberMonkey",
+      7.723,
+      0.0,
+      0.6719
+    ]
+  ],
+  "workload": "speedometer3",
+  "sm_runs_per_variant": 1,
+  "v8_source": "manual: v8_jitless_sp3_perf.json",
+  "v8_jitless_over_default": 0.6619718309859155,
+  "ambermonkey_over_default": 0.6719157821472073,
+  "interp_only_over_default": 0.39907777971115366,
+  "source_fossil": "v8-jitless-comparison"
+}
