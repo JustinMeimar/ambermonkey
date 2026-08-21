@@ -5,11 +5,11 @@
 
 #let ambermonkey-runtime-diagram = {
     let figure-w = 17.5
-    let figure-h = 4.4
-    let table-x0 = 5.3
-    let table-x1 = 7.5
-    let table-y0 = 0
-    let table-y1 = 4.4
+    let figure-h = 5.15
+    let table-x0 = 5.35
+    let table-x1 = 8
+    let table-y0 = 0.55
+    let table-y1 = 3.55
     let slot-h = 0.62
     let slot-one-y = table-y1 - 1.5 * slot-h
     let rotate-content = rotate
@@ -25,16 +25,36 @@
         fill: none,
       )
 
+      // The dotted enclosure identifies the state and instructions added by
+      // AmberMonkey while leaving the existing VM structure outside.
+      rect(
+        (4.85, -0.2), (13.75, 4.15),
+        stroke: (paint: dg.warm, thickness: 0.9pt, dash: "dotted"),
+        fill: none,
+        radius: 0.22,
+      )
+      circle(
+        (5.2, 4.48),
+        radius: 0.12,
+        stroke: 0.7pt + dg.warm,
+        fill: dg.warm,
+      )
+      content(
+        (5.45, 4.48),
+        anchor: "west",
+        text(size: 8.5pt, weight: "bold", fill: dg.warm)[AmberMonkey],
+      )
+
       // Three offset, nearly square outlines represent concurrent VM
       // instances. The foreground VM exposes the runtime components relevant
       // to the indirection path.
       let vm-x0 = 0.55
-      let vm-x1 = 3.85
-      let vm-y0 = 0.55
-      let vm-y1 = 3.75
+      let vm-x1 = 3.55
+      let vm-y0 = 0.2
+      let vm-y1 = 2.0
 
       for layer in (2, 1) {
-        let offset = 0.22 * layer
+        let offset = 0.14 * layer
         rect(
           (vm-x0 + offset, vm-y0 + offset),
           (vm-x1 + offset, vm-y1 + offset),
@@ -51,12 +71,12 @@
         radius: 0.12,
       )
 
-      let component-w = 1.25
-      let component-h = 0.9
-      let component-left = vm-x0 + 0.3
-      let component-right = vm-x1 - 0.3 - component-w
-      let component-bottom = vm-y0 + 0.6
-      let component-top = vm-y1 - 0.6 - component-h
+      let component-w = 1.08
+      let component-h = 0.55
+      let component-left = vm-x0 + 0.25
+      let component-right = vm-x1 - 0.25 - component-w
+      let component-bottom = vm-y0 + 0.28
+      let component-top = vm-y1 - 0.25 - component-h
 
       let draw-component(x, y, label) = {
         rect(
@@ -74,7 +94,7 @@
       draw-component(component-left, component-top, [GC])
       draw-component(component-right, component-top, [Runtime])
       draw-component(component-left, component-bottom, [JIT])
-      draw-component(component-right, component-bottom, [Interpreter])
+      draw-component(component-right, component-bottom, [Contexts])
 
       content(
         ((vm-x0 + vm-x1 + 0.44) / 2, vm-y0 - 0.42),
@@ -86,14 +106,15 @@
         (table-x0, slot-one-y),
         (component-right + component-w, component-top + component-h / 2),
         mark: (end: ">"),
-        stroke: 1pt + dg.accent,
+        stroke: 1pt + dg.warm,
       )
 
-      // A runtime-generated interpreter embeds %JSRuntime directly. Draw its
-      // direct path before the RIT layers so the pointer passes behind them.
+      // A runtime-generated interpreter embeds %JSRuntime directly. Its
+      // direct path runs from the stacked interpreters above the VMs to the
+      // foreground runtime component.
       line(
-        (8.4, 0.72),
-        (component-right + component-w, component-top + 0.2),
+        (component-right + component-w / 2, 3),
+        (component-right + component-w / 2, component-top + component-h),
         mark: (end: ">"),
         stroke: 1pt + dg.accent,
       )
@@ -137,27 +158,39 @@
         )
       }
 
-      let index-x = table-x0 - 0.18
-      content((index-x, table-y1 - 0.5 * slot-h), anchor: "east", dlabel[0])
-      content((index-x, table-y1 - 1.5 * slot-h), anchor: "east", dlabel[1])
-      content((index-x, table-y1 - 2.5 * slot-h), anchor: "east", dlabel[2])
-      content((index-x, table-y0 + 0.5 * slot-h), anchor: "east", dlabel[511])
+      let entry-x = table-x0 + 0.22
+      content(
+        (entry-x, table-y1 - 0.5 * slot-h),
+        anchor: "west",
+        dmono[0:],
+      )
+      content(
+        (entry-x, table-y1 - 2.5 * slot-h),
+        anchor: "west",
+        dmono[2:],
+      )
+      content(
+        (entry-x, table-y0 + 0.5 * slot-h),
+        anchor: "west",
+        dmono[511:],
+      )
 
       rect(
         (table-x0 + 0.18, slot-one-y - 0.22),
         (table-x1 - 0.18, slot-one-y + 0.22),
         stroke: none,
-        fill: dg.accent-wash,
+        fill: dg.warm-wash,
         radius: 0.08,
       )
       content(
-        ((table-x0 + table-x1) / 2, slot-one-y),
+        (entry-x, slot-one-y),
+        anchor: "west",
         text(
           size: 7pt,
           font: "DejaVu Sans Mono",
           weight: "bold",
-          fill: dg.accent,
-        )[&JSRuntime],
+          fill: dg.warm,
+        )[1: &JSRuntime],
       )
 
       content(
@@ -169,16 +202,16 @@
       // from the frame. The second retrieves slot 1 from that table.
       let artifact-x0 = 8.8
       let artifact-x1 = 13.35
-      let artifact-y0 = 2.8
-      let artifact-y1 = 4.35
-      let load-y = 3.25
+      let artifact-y0 = 1.55
+      let artifact-y1 = 3.1
+      let load-y = 2
 
       // Draw the relationship first so the arrow terminates cleanly at the
       // table and artifact boundaries.
       line(
         (artifact-x0, load-y), (table-x1, slot-one-y),
         mark: (end: ">"),
-        stroke: 1pt + dg.accent,
+        stroke: 1pt + dg.warm,
       )
 
       rect(
@@ -188,8 +221,8 @@
         radius: 0.12,
       )
       content(
-        ((artifact-x0 + artifact-x1) / 2, artifact-y1 + 0.35),
-        dtitle[AOT Baseline Interpreter],
+        ((artifact-x0 + artifact-x1) / 2, artifact-y0 - 0.42),
+        dtitle[AOT Interpreter],
       )
 
       let code-x0 = artifact-x0 + 0.55
@@ -223,7 +256,7 @@
         (code-x0 - 0.15, load-y - 0.25),
         (code-x1, load-y + 0.25),
         stroke: none,
-        fill: dg.accent-wash,
+        fill: dg.warm-wash,
         radius: 0.08,
       )
       content(
@@ -233,20 +266,39 @@
           size: 7.5pt,
           font: "DejaVu Sans Mono",
           weight: "bold",
-          fill: dg.accent,
+          fill: dg.warm,
         )[movq 8(%r11), %rax],
       )
 
+      // Number the two dependent AOT loads independently of colour so their
+      // order remains clear in print: frame to RIT base, then slot to value.
+      for (number, y) in (
+        (1, load-y + line-gap),
+        (2, load-y),
+      ) {
+        circle(
+          (code-x0 - 0.35, y),
+          radius: 0.13,
+          stroke: none,
+          fill: dg.warm,
+        )
+        content(
+          (code-x0 - 0.35, y),
+          text(size: 6.5pt, weight: "bold", fill: white)[#number],
+        )
+      }
+
       // Each runtime-generated Baseline Interpreter embeds its own runtime
-      // address directly in the handler. Two offset outlines represent the
-      // additional concurrent instances.
-      let generated-x0 = 8.4
-      let generated-x1 = 13.1
-      let generated-y0 = 0.35
-      let generated-y1 = 1.55
+      // address directly in the handler. Stack these interpreters above the
+      // VMs to keep them visually separate from the AOT interpreter. Two
+      // offset outlines represent the additional concurrent instances.
+      let generated-x0 = 0
+      let generated-x1 = 4.35
+      let generated-y0 = 3
+      let generated-y1 = 4.35
 
       for layer in (2, 1) {
-        let offset = 0.22 * layer
+        let offset = 0.18 * layer
         rect(
           (generated-x0 + offset, generated-y0 + offset),
           (generated-x1 + offset, generated-y1 + offset),
@@ -264,16 +316,16 @@
         radius: 0.12,
       )
       content(
-        ((generated-x0 + generated-x1 + 0.44) / 2, generated-y0 - 0.42),
-        align(center)[#dtitle[Runtime-Generated \ Baseline Interpreters]],
+        ((generated-x0 + generated-x1 + 0.36) / 2, generated-y1 + 0.6),
+        dtitle[Generated Interpreter],
       )
 
-      let generated-code-x0 = generated-x0 + 0.55
-      let generated-code-x1 = generated-x1 - 0.35
-      let generated-load-y = 0.72
+      let generated-code-x0 = generated-x0 + 0.45
+      let generated-code-x1 = generated-x1 - 0.08
+      let generated-load-y = 3.4
 
       content(
-        (generated-code-x0, generated-load-y + 0.5),
+        (generated-code-x0, generated-load-y + 0.38),
         anchor: "west",
         dmono[op_getprop:],
       )
@@ -288,7 +340,7 @@
         (generated-code-x0, generated-load-y),
         anchor: "west",
         text(
-          size: 7.5pt,
+          size: 7pt,
           font: "DejaVu Sans Mono",
           weight: "bold",
           fill: dg.accent,
@@ -327,7 +379,25 @@
           stroke: 0.6pt + dg.rule,
         )
       }
-      let rit-field-y = stack-y1 - 1.5 * stack-slot-h
+      let header-y = stack-y1 - 0.5 * stack-slot-h
+      let interpreter-state-y = stack-y1 - 1.5 * stack-slot-h
+      let rit-field-y = stack-y1 - 2.5 * stack-slot-h
+      let other-state-y = stack-y1 - 3.5 * stack-slot-h
+      let locals-y = stack-y1 - 4.5 * stack-slot-h
+      let operand-stack-y = stack-y1 - 5.5 * stack-slot-h
+
+      content(
+        ((stack-x0 + stack-x1) / 2, header-y),
+        align(center)[
+          #text(size: 6.5pt)[Frame header]
+          #linebreak()
+          #text(size: 6pt, font: "DejaVu Sans Mono")[%rbp]
+        ],
+      )
+      content(
+        ((stack-x0 + stack-x1) / 2, interpreter-state-y),
+        text(size: 6.5pt)[Interpreter state],
+      )
       rect(
         (stack-x0 + 0.18, rit-field-y - 0.24),
         (stack-x1 - 0.18, rit-field-y + 0.24),
@@ -342,11 +412,23 @@
           font: "DejaVu Sans Mono",
           weight: "bold",
           fill: dg.warm,
-        )[&RIT],
+        )[RIT base],
+      )
+      content(
+        ((stack-x0 + stack-x1) / 2, other-state-y),
+        text(size: 6.5pt)[Other frame state],
+      )
+      content(
+        ((stack-x0 + stack-x1) / 2, locals-y),
+        dsmall[Locals],
+      )
+      content(
+        ((stack-x0 + stack-x1) / 2, operand-stack-y),
+        text(size: 6.5pt)[Operand stack],
       )
 
       // Bracket the portion of the stack occupied by the Baseline frame.
-      let frame-y0 = stack-y0 + stack-slot-h
+      let frame-y0 = stack-y0 + 2 * stack-slot-h
       let frame-y1 = stack-y1 - stack-slot-h
       let bracket-x = stack-x0 - 0.16
       line(
