@@ -41,6 +41,8 @@
 #let _argmin  = json-field("inter-workload-coverage.json", "ic_coverage_argmin")
 #let inter-baseline-jaccard-median  = float-str(_medians.baseline_jaccard)
 #let inter-ic-jaccard-median        = float-str(_medians.ic_jaccard)
+#let inter-baseline-jaccard-pct     = pct(_medians.baseline_jaccard)
+#let inter-ic-jaccard-pct           = pct(_medians.ic_jaccard)
 #let inter-baseline-coverage-median = pct(_medians.baseline_coverage)
 #let inter-ic-coverage-median       = pct(_medians.ic_coverage)
 #let inter-site-count               = int-str(json-field("inter-workload-coverage.json", "site_count"))
@@ -52,6 +54,7 @@
 #let inter-ic-min-value           = pct(_argmin.value)
 #let inter-ic-min-corpus          = _site-display.at(_argmin.corpus)
 #let inter-ic-min-target          = _site-display.at(_argmin.target)
+#let inter-baseline-coverage-max  = pct(json-field("inter-workload-coverage.json", "baseline_coverage_max"))
 
 
 // --- 7-2 held-out corpus coverage ---

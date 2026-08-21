@@ -430,27 +430,26 @@ AmberMonkey's AOT corpus. @fig-interworkload-coverage previews the
 cross-workload comparison reported at the end of this section.
 
 #figure(
-  grid(
-    columns: (2.7fr, 1fr),
-    gutter: 10pt,
-    align: horizon,
-    image("lib/figures/3-3-inter-workload-pannel.pdf", width: 100%),
-    text(size: 8.5pt)[
-      #align(center)[
-        Static intersection
-        $ S(A, B) = (|I(A) sect I(B)|) / (|I(A) union I(B)|) $
-        #v(0.6em)
-        Dynamic intersection
-        $ D(A, B) = (sum_(i in I(A) sect I(B)) n_B(i)) / (sum_(i in I(B)) n_B(i)) $
-      ]
-    ],
+  table(
+    columns: (auto, auto, auto),
+    align: (left, right, right),
+    stroke: 0.5pt + gray,
+    inset: 5pt,
+    table.header(
+      [], [Static $S(A,B)$], [Dynamic $D(A,B)$],
+    ),
+    [IC body],
+    [#inter-ic-jaccard-pct],
+    [#inter-ic-coverage-median (min #inter-ic-min-value)],
+    [Baseline function],
+    [#inter-baseline-jaccard-pct],
+    [#inter-baseline-coverage-median (max #inter-baseline-coverage-max)],
   ),
-  caption: [Pairwise IC-body reuse across the first #inter-site-count
-    tp6-Train workloads. (a) Static intersection $S(A, B)$. (b) Directional
-    dynamic intersection $D(A, B)$ from source workload $A$ to evaluated
-    workload $B$.],
+  caption: [Median cross-workload reuse across #inter-ic-offdiag-count
+    ordered pairs from the first #inter-site-count tp6-Train workloads.
+    Static intersection weights identities equally; dynamic intersection
+    weights them by execution count in the target workload.],
   placement: top,
-  scope: "parent",
 ) <fig-interworkload-coverage>
 
 #subsection[Executable Representation]
@@ -558,16 +557,12 @@ the first #inter-site-count alphabetically ordered tp6-Train workloads
 intersection results, and the analysis retains only guest-script events from
 content processes. We pool the three page loads rather than treating them as
 independent samples.
-@fig-interworkload-coverage summarizes both measures.
-
-Across workload pairs, Baseline functions have a median static intersection of
-#inter-baseline-jaccard-median and a median dynamic intersection of
-#inter-baseline-coverage-median. IC bodies have a median static intersection of
-#inter-ic-jaccard-median and a median dynamic intersection of
-#inter-ic-coverage-median. For #inter-ic-pairs-at-threshold of the
-#inter-ic-offdiag-count ordered IC pairs, dynamic intersection is at least
-#inter-ic-threshold-pct. Even the minimum pairwise IC dynamic intersection is
-#inter-ic-min-value.
+@fig-interworkload-coverage reports both measures. The two units separate by
+nearly two orders of magnitude under the dynamic measure: even the weakest IC
+pair covers #inter-ic-min-value of the target's dynamic requests, while the
+strongest Baseline-function pair reaches only #inter-baseline-coverage-max.
+For #inter-ic-pairs-at-threshold of the #inter-ic-offdiag-count ordered IC
+pairs, dynamic intersection is at least #inter-ic-threshold-pct.
 
 Exact reuse decreases as a compilation unit incorporates more application
 context. A Baseline function combines an entire bytecode sequence, whereas an
