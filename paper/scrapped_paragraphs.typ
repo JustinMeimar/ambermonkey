@@ -141,21 +141,88 @@ unattractive default unit for a fixed AOT corpus.
 
 // 
 
-In section III we contrast the cross-process reuse of Baseline function
-compilation against Inline Cache stubs, establishing the primary empirical
-contribution of this work. Across #inter-site-count websites drawn from
-Mozilla's Firefox page-load benchmark suite @mozilla2026tp6, we first
-quantiy the static intersection of Inline Cache stubs which occur in each
-pair. Despite only a moderate static intersection of
-#inter-ic-jaccard-median, defined as the same IC stub occuring in each
-workload, the frequency weighted, or dynamic intersection was signifacntly
-higher. Defined as the stub entries occuring into ICs from the static
-intersection, weighted by all IC stub entires globally, the dynamic IC
-intersection across separate sites achieved a median coverage of #inter-ic-coverage-median.
+In Section III we contrast the cross-workload reuse of Baseline functions and
+inline-cache (IC) bodies, establishing the primary empirical contribution of
+this work. Across websites drawn from Mozilla's Firefox page-load benchmark
+suite @mozilla2026tp6, we first quantify the static intersection of IC bodies
+for each workload pair. We then weight the shared bodies by their frequency in
+the target workload to obtain the directional dynamic intersection. The IC
+bodies have a moderate static intersection but a substantially higher dynamic
+intersection.
 
-We attribute this partialy due to compilation granuality: Baseline
+We attribute this contrast partly to compilation granularity: Baseline
 compilation operates at coarse, whole-function granularity, whereas each IC
-body implements one operation case. Foremost, however, we attribute this
-high dynamic coverage to the strucutred design of CacheIR.
+body implements one operation case. CacheIR's structured separation of native
+stub code from site-specific data further enables this reuse.
 
 
+// Candidate material removed from the introduction on 08-20-2026.
+//
+// Potential placement: AmberMonkey Design, near the first explanation of why
+// the AOT transformation sits beneath existing code-generation interfaces.
+// This contrast is too detailed for the introduction, but it may help the
+// Design section distinguish the work from V8 Embedded Builtins.
+//
+// Paragraph outline:
+// - V8 Embedded Builtins moved common generated routines into an immutable
+//   engine image, initially to avoid redundant compilation across isolates.
+// - The same immutable representation later supplied native routines under
+//   V8's JITless mode.
+// - V8 implements and maintains these routines through its builtin-specific
+//   CodeStubAssembler and Torque pipeline.
+// - Our design instead adds AOT generation beneath the interfaces used by
+//   existing Baseline code generators. This placement lets the trusted build
+//   capture Baseline functions, IC bodies, and engine infrastructure without
+//   implementing each artifact through a separate code-generation path.
+// - The distinction is the source of AOT artifacts, not the established use
+//   of immutable engine code or indirection itself.
+//
+// Evidence and citations to retain when drafting:
+// - Embedded Builtins and cross-isolate sharing: @gruber2018builtins.
+// - Reuse of embedded routines in JITless execution: @gruber2019jitless.
+// - Add a primary V8 source for the current CodeStubAssembler/Torque workflow
+//   before making a detailed claim about its maintenance cost.
+
+
+// Potential placement: end of the cross-workload-reuse analysis, after the
+// contrast between Baseline functions and IC bodies.
+//
+// Paragraph outline:
+// - Low reuse among complete application functions does not rule out every
+//   Baseline function as an AOT artifact.
+// - Self-hosted JavaScript functions are known when the engine is built and
+//   recur in every runtime, so they do not require statistical selection.
+// - This exception motivates two inclusion policies: deterministic or
+//   build-time-known artifacts are included directly, while workload-derived
+//   artifacts must demonstrate cross-workload reuse.
+// - Keep the self-hosted function count and its measured contribution in the
+//   empirical sections rather than the introduction.
+
+
+// Potential placement: opening of AmberMonkey Design, before the pointer
+// classification mechanism.
+//
+// Paragraph outline:
+// - A separate AOT backend would need to reproduce more than instruction
+//   selection. It would also need to preserve the production engine's frame,
+//   garbage-collection, exception-handling, stack-walking, and tiering
+//   interfaces.
+// - Applying AOT generation beneath existing Baseline code-generation
+//   interfaces retains these integration points.
+// - This placement explains why the design covers Baseline functions, IC
+//   bodies, and internally generated Baseline infrastructure without a new
+//   implementation for each artifact class.
+
+
+// Potential placement: cross-workload-reuse methodology, immediately before
+// reporting pairwise results.
+//
+// Paragraph outline:
+// - Static intersection measures which artifact identities recur in both
+//   workloads and weights each identity equally.
+// - Directional dynamic intersection weights the shared identities by their
+//   frequency in the target workload.
+// - The distinction explains how a moderate recurring set can cover most
+//   run-time IC activity.
+// - Report the exact values, benchmark selection, and limitations here rather
+//   than in the introduction.
