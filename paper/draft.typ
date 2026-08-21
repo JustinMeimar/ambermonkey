@@ -109,15 +109,15 @@
 
 $space$
 
-JavaScript engines restrict guest-controlled just-in-time (JIT)
-compilation to reduce their attack surface; however, this restriction can
-impose a substantial performance regression. We find that JIT
-code-generation can be augmented to generate AOT inline-cache (IC) bodies
-and Baseline functions. Including these AOT artifacts reclaims
-performance lost under restricted settings. Our analysis shows that
-dynamic IC requests concentrate in a small recurring set of stub bodies,
-making their inclusion in a fixed AOT image feasible. Our #ic-stub-bytes
-corpus serves #sp3-ic-hit-rate of IC-body requests on Speedometer 3.1 and
+JavaScript engines restrict guest-controlled just-in-time (JIT) compilation
+to reduce their attack surface. Without optimized JIT code, JavaScript
+workloads face substantial performance regressions. We find that JIT
+code-generation can be augmented to generate AOT code, namely inline-cache
+(IC) bodies and Baseline functions. Including these AOT artifacts reclaims
+performance lost under restricted settings. Our analysis shows that dynamic
+IC requests concentrate in a small recurring set of stub bodies, making
+their inclusion in a fixed AOT image feasible. Our #ic-stub-bytes corpus
+serves #sp3-ic-hit-rate of IC-body requests on Speedometer 3.1 and
 #js3-ic-hit-rate on JetStream 3.0.
 
 We present AmberMonkey, a code-generation model that augments SpiderMonkey's
@@ -146,50 +146,72 @@ reducing engine proportional set size (PSS) per content process by
 $space$ Restricted-execution modes prevent untrusted guest JavaScript from
 triggering just-in-time (JIT) compilation. Platforms impose these modes to
 satisfy executable-memory constraints or to reduce the compiler attack
-surface exposed to guest-controlled inputs. JIT compilation remains a security
-risk in contemporary JavaScript engines. A 2026 review of V8
-bugs estimated that JIT compilers accounted for roughly 50% of the tracked
-vulnerabilities @gross2026state. Disabling JIT compilation, however, can
-substantially reduce application throughput. V8 initially reported a 40%
-Speedometer 2.0 slowdown in its JITless configuration @gruber2019jitless. In
-our experiments, an interpreter-only SpiderMonkey configuration reached 38%
-of the throughput of the default tiered-JIT configuration on Speedometer
-3.1. This gap motivates an ahead-of-time (AOT) code-generation model that
-improves performance over interpretation without allowing guest-triggered
-native-code generation.
+surface exposed to guest-controlled inputs. Despite years of mitigation
+efforts, JIT compilation remains a security risk in contemporary JavaScript
+engines. A 2026 review of V8 bugs estimated that JIT compilers accounted for
+roughly 50% of the tracked vulnerabilities @gross2026state. Disabling JIT
+compilation, however, can substantially reduce application throughput. V8
+initially reported a 40% Speedometer 2.0 slowdown in its JITless
+configuration @gruber2019jitless. In our experiments, an interpreter-only
+SpiderMonkey configuration reached 38% of the throughput of the default
+tiered-JIT configuration on Speedometer 3.1. This gap motivates an
+ahead-of-time (AOT) code-generation model that improves performance over
+interpretation without allowing guest-triggered native-code generation.
+
+Providing frequently executed JIT code at compile time offers one solution
+to acheiving performance without dynamic executable memory. Prior efforts
+towards AOT compilation, however, restrict AOT artifacts considered to those
+trivially anticipated, such as JavaScript builtins. In this work we consider
+whether arbitrary JIT code can be emitted in an AOT ammenible format, then
+included in an AOT image on a statistical basis. In order to emit arbitrary
+artifacts, an AOT system can not rely on re-implementation efforts through
+an alternative code generator. Full generality requires AOT which can be
+emitted precisley where code-generation routines for JIT tiers already
+exist.
 
 V8 established a prior art in bootstrapping runtime-generated code into its
 engine binary with Embedded Builtins @gruber2018builtins. V8 previously
 implemented most builtins in self-hosted JavaScript, platform-specific
 assembly, or C++. It later ported performance-sensitive builtins to the
 CodeStubAssembler and Torque, whose separate build pipeline generates native
-bodies for embedding.
+bodies for embedding. Porting code-generation routines requires an expensive
+engineering effort. Moreover, re-implementing JIT code which must
+stringently adhere to the JavaScript specification can introduce a secondary
+source of truth for semantics.
 
-Embedded Builtins make their generated bodies immutable and process
-independent, allowing isolates to share a fixed corpus. This representation
-naturally allows native engine routines to be utilized in JITless execution
-@gruber2018builtins @gruber2019jitless. Extending the corpus, however,
-requires developers to implement each additional function or fast path
-through V8’s builtin-specific Torque and CodeStubAssembler stack. Torque
-reduces the burden of authoring CodeStubAssembler code, but the resulting
-workflow remains separate from ordinary JavaScript and V8’s runtime JIT
-generators.
+Despite these facts, V8's work on Embedded Builtins has resulted in improved
+performance for their _JITless_ mode. While originally developed by the
+motivation to reduce memory of redundantly compiled builtins across
+isolates, the V8 team found shortly thereafter that the immutable
+representation required for cross-process sharing also made a natural fit
+for JITless execution @gruber2019jitless.
 
-AmberMonkey takes a distinct approach. We extend SpiderMonkey's
-MacroAssembler with an AOT JIT generation mode, allowing existing code
-generators to produce reusable artifacts without an additional DSL.
-Furthermore, AmberMonkey is transparent to existing Baseline JIT generators.
-It can be enabled with a single switch to transform Baseline compiled
-JavaScript, inline-cache (IC) bodies, or internal JIT mechanisms into an AOT
-format.
+Learning from V8s _JITless_ mode, we recognize the dual bennefits of an
+immutable AOT representation for both memory savings, by eliding redundant
+compilations, and performance reclaimation under restricted execution
+settings. Distinct from V8, however, we emphasize two additional design
+aspects. First, an AOT code generator must be able to transform _arbitrary_
+JIT code into an AOT artifact. Doing so enables accruing an AOT corpus with
+maximal coverage for real-world workloads through statiscal means.
 
-This interface lowers the friction to construct an AOT corpus significantly,
-as adding artifacts does not require hand-authored new implementations. The
-convenience of using AmberMonkey immediately raises a question. If arbitrary
-Baseline JIT and IC code can be included in an AOT image, how do we identify
-which artifacts justify occupying a static footprint in the engine's binary?
-An artifact which improves performance on one workload may be absent from
-another. Therefore, an AOT artifact must recur frequently across workloads.
+Second, an AOT system must be _transparent_ to existing code-generation
+routines. JIT compilers etch out intricate internal routines such as
+trampolines and interpreters, as well as generic JavaScript compilation
+routines, using runtime code-assemblers. Implementing AOT transformations
+beneath existing interfaces rather than above ensures no duplication of
+routines which must stringently preserve the semantics of JavaScript code
+they provide speicalized native code for.
+
+An interface of this kind lowers the friction to construct an AOT corpus
+significantly, as adding artifacts does not require hand-authored new
+implementations. A flexability of such a model immediately raises a
+question. If arbitrary JIT code can be included in an AOT image, how do we
+identify which artifacts justify occupying a static footprint in the
+engine's binary? An artifact which improves performance on one workload may
+be absent from another. Therefore, an AOT artifact must recur frequently
+across workloads.
+
+This work presents AmberMonkey:
 
 Our implementation of AmberMonkey begins with Baseline code-generation and
 Inline Caches. These artifacts exhibit contrasting granularities of
